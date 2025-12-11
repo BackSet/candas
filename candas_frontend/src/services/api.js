@@ -1,8 +1,11 @@
 import axios from 'axios'
 import logger from '../utils/logger'
 
+// En desarrollo, usar el proxy de Vite (ruta relativa). En producción, usar la URL configurada.
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? '' : 'http://localhost:8000')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
+  baseURL: baseURL,
   withCredentials: true, // Importante para cookies de sesión de Django
   headers: {
     'Content-Type': 'application/json',
