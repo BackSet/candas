@@ -4,6 +4,7 @@ import { toast } from 'react-toastify'
 import pullsService from '../../services/pullsService'
 import { Card, Button, LoadingSpinner, Badge, QRCodeDisplay } from '../../components'
 import { PackageList } from '../../components/domain/packages'
+import { getEntityColor } from '../../utils/entityColors'
 
 // Opciones de estado de paquetes
 const PACKAGE_STATUS_OPTIONS = [
@@ -117,11 +118,11 @@ const PullsDetail = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+            <div className={`w-14 h-14 bg-accent-600 dark:bg-accent-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform`}>
               <i className="fas fa-boxes text-2xl text-white"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+              <h1 className={`text-3xl font-bold ${getEntityColor('saca', 'text')}`}>
                 Detalles de la Saca
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -133,7 +134,7 @@ const PullsDetail = () => {
             <Button
               variant="primary"
               onClick={() => navigate(`/logistica/pulls/${id}/editar`)}
-              className="w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+              className="w-auto px-6 py-3 bg-accent-600 dark:bg-accent-500 hover:bg-accent-700 dark:hover:bg-accent-600"
             >
               <i className="fas fa-edit mr-2"></i>
               Editar
@@ -200,8 +201,8 @@ const PullsDetail = () => {
                 </label>
                 {pull.batch_info ? (
                   <div className="flex items-center gap-2">
-                    <Badge variant="purple">
-                      <i className="fas fa-layer-group mr-1"></i>
+                    <Badge variant="primary">
+                      <i className={`fas fa-layer-group mr-1 ${getEntityColor('lote', 'icon')}`}></i>
                       {pull.batch_info.destiny}
                     </Badge>
                   </div>
@@ -230,8 +231,8 @@ const PullsDetail = () => {
                     {pull.effective_destiny || pull.common_destiny}
                   </p>
                   {pull.data_source?.destiny_source === 'batch' && (
-                    <Badge variant="purple" size="sm">
-                      <i className="fas fa-arrow-down mr-1"></i>
+                    <Badge variant="primary" size="sm">
+                      <i className={`fas fa-arrow-down mr-1 ${getEntityColor('lote', 'icon')}`}></i>
                       Heredado de Lote
                     </Badge>
                   )}
@@ -248,8 +249,8 @@ const PullsDetail = () => {
                     {pull.effective_agency?.name || pull.transport_agency_info?.name || 'Sin asignar'}
                   </p>
                   {pull.data_source?.agency_source === 'batch' && (
-                    <Badge variant="purple" size="sm">
-                      <i className="fas fa-arrow-down mr-1"></i>
+                    <Badge variant="primary" size="sm">
+                      <i className={`fas fa-arrow-down mr-1 ${getEntityColor('lote', 'icon')}`}></i>
                       Heredado de Lote
                     </Badge>
                   )}
@@ -266,8 +267,8 @@ const PullsDetail = () => {
                     {pull.effective_guide_number || pull.guide_number || 'Sin guía'}
                   </p>
                   {pull.data_source?.guide_source === 'batch' && (
-                    <Badge variant="purple" size="sm">
-                      <i className="fas fa-arrow-down mr-1"></i>
+                    <Badge variant="primary" size="sm">
+                      <i className={`fas fa-arrow-down mr-1 ${getEntityColor('lote', 'icon')}`}></i>
                       Heredado de Lote
                     </Badge>
                   )}
@@ -276,19 +277,19 @@ const PullsDetail = () => {
 
               {/* Jerarquía visual si está en lote */}
               {pull.batch_info && (
-                <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                  <p className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-2">
-                    <i className="fas fa-sitemap mr-2"></i>
+                <div className={`mt-4 p-4 ${getEntityColor('lote', 'bg')} ${getEntityColor('lote', 'border')} border rounded-lg`}>
+                  <p className={`text-sm font-semibold ${getEntityColor('lote', 'text')} mb-2`}>
+                    <i className={`fas fa-sitemap mr-2 ${getEntityColor('lote', 'icon')}`}></i>
                     Jerarquía de Envío
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
-                    <span className="font-mono">Lote</span>
-                    <i className="fas fa-chevron-right"></i>
-                    <span className="font-mono font-bold">Saca (actual)</span>
-                    <i className="fas fa-chevron-right"></i>
-                    <span className="font-mono">Paquetes</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={`font-mono ${getEntityColor('lote', 'text')}`}>Lote</span>
+                    <i className="fas fa-chevron-right text-gray-400"></i>
+                    <span className={`font-mono font-bold ${getEntityColor('saca', 'text')}`}>Saca (actual)</span>
+                    <i className="fas fa-chevron-right text-gray-400"></i>
+                    <span className="font-mono text-gray-600 dark:text-gray-400">Paquetes</span>
                   </div>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                  <p className={`text-xs ${getEntityColor('lote', 'text')} mt-2`}>
                     Los paquetes en esta saca heredarán los datos de envío del lote si no tienen valores propios.
                   </p>
                 </div>
@@ -332,17 +333,17 @@ const PullsDetail = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <div className={`p-4 ${getEntityColor('saca', 'bg')} rounded-lg`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    <p className={`text-sm font-medium ${getEntityColor('saca', 'text')}`}>
                       Estado
                     </p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-200">
+                    <p className={`text-2xl font-bold ${getEntityColor('saca', 'text')}`}>
                       {pull.batch ? 'En Lote' : 'Individual'}
                     </p>
                   </div>
-                  <i className={`fas ${pull.batch ? 'fa-layer-group' : 'fa-cube'} text-3xl text-purple-500 dark:text-purple-400`}></i>
+                  <i className={`fas ${pull.batch ? 'fa-layer-group' : 'fa-cube'} text-3xl ${getEntityColor('saca', 'icon')}`}></i>
                 </div>
               </div>
             </div>

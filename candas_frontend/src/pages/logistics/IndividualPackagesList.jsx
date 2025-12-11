@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import packagesService from '../../services/packagesService'
 import { LoadingSpinner, EmptyState, ConfirmDialog, Card, Button, Badge, DataTable, StatCard, TableActions, DocumentButtons } from '../../components'
+import { getEntityColor } from '../../utils/entityColors'
 
 const IndividualPackagesList = () => {
   const navigate = useNavigate()
@@ -163,11 +164,11 @@ const IndividualPackagesList = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+            <div className="w-14 h-14 bg-info-600 dark:bg-info-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
               <i className="fas fa-shipping-fast text-2xl text-white"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+              <h1 className={`text-3xl font-bold ${getEntityColor('individual', 'text')}`}>
                 Paquetes Individuales
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -179,7 +180,7 @@ const IndividualPackagesList = () => {
             <Button
               variant="primary"
               onClick={() => navigate('/logistica/individuales/crear')}
-              className="w-auto px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+              className="w-auto px-6 py-3 bg-info-600 dark:bg-info-500 hover:bg-info-700 dark:hover:bg-info-600"
             >
               <i className="fas fa-exchange-alt mr-2"></i>
               Convertir a Individual
@@ -194,7 +195,7 @@ const IndividualPackagesList = () => {
           icon="fas fa-shipping-fast"
           value={totalIndividual}
           label="Total Individuales"
-          color="blue"
+          color="info"
         />
         <StatCard
           icon="fas fa-warehouse"

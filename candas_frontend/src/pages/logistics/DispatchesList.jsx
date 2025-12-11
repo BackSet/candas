@@ -5,6 +5,7 @@ import { Button, DataTable, Badge, TableActions, StatCard } from '../../componen
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
+import { getEntityColor } from '../../utils/entityColors'
 
 const DispatchesList = () => {
   const navigate = useNavigate()
@@ -151,11 +152,11 @@ const DispatchesList = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
-              <i className="fas fa-shipping-fast text-2xl text-white"></i>
+            <div className="w-14 h-14 bg-success-600 dark:bg-success-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+              <i className="fas fa-truck-loading text-2xl text-white"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+              <h1 className={`text-3xl font-bold ${getEntityColor('despacho', 'text')}`}>
                 Despachos
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -167,7 +168,7 @@ const DispatchesList = () => {
             <Button
               variant="primary"
               onClick={() => navigate('/logistica/dispatches/crear')}
-              className="w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+              className="w-auto px-6 py-3 bg-success-600 dark:bg-success-500 hover:bg-success-700 dark:hover:bg-success-600"
             >
               <i className="fas fa-plus mr-2"></i>
               Crear Despacho
@@ -179,10 +180,10 @@ const DispatchesList = () => {
       {/* Estadísticas Globales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-          icon="fas fa-shipping-fast"
+          icon="fas fa-truck-loading"
           value={totalDispatches}
           label="Total Despachos"
-          color="indigo"
+          color="success"
         />
         <StatCard
           icon="fas fa-spinner"

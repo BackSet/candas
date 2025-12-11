@@ -67,7 +67,8 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 - **Vite**: Build tool y dev server
 - **React Router**: Navegación
 - **Axios**: Cliente HTTP
-- **Bootstrap 5**: Framework CSS
+- **Tailwind CSS**: Framework CSS
+- **Flowbite React**: Componentes UI basados en Tailwind
 - **React Toastify**: Notificaciones
 - **Font Awesome**: Iconos
 

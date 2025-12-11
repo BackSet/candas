@@ -151,7 +151,6 @@ Consulta: `IMPORT_MODULE_README.md` (guía completa)
 ✅ Modelo `PackageImport` con tracking de importaciones  
 ✅ Servicio `PackageImportService` con parseo y validación  
 ✅ Dos vistas web (formulario y detalle)  
-✅ Dos plantillas HTML con Bootstrap 5.3  
 ✅ Integración en sidebar  
 ✅ Admin panel con estadísticas  
 ✅ Archivo Excel de ejemplo  

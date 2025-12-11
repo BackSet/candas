@@ -38,99 +38,95 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 dark:bg-primary-900/20 rounded-full blur-3xl opacity-50"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-200 dark:bg-accent-900/20 rounded-full blur-3xl opacity-50"></div>
+    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8 bg-white dark:bg-gray-900">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <div className="flex justify-center">
+          <div className="flex items-center justify-center w-12 h-12 bg-primary-600 rounded-xl">
+            <i className="fas fa-truck text-xl text-white"></i>
+          </div>
+        </div>
+        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white">
+          Sign in to your account
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          Sistema de Logística Candas
+        </p>
       </div>
 
-      <div className="relative w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 animate-scale-in">
-          {/* Logo and Title */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
-              <i className="fas fa-truck text-2xl text-white"></i>
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium leading-6 text-gray-900 dark:text-white">
+              Usuario
+            </label>
+            <div className="mt-2">
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-primary-600 dark:focus:ring-primary-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800 px-3"
+                placeholder="Ingresa tu usuario"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Candas
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Sistema de Logística
-            </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label 
-                htmlFor="username" 
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Usuario
+          <div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900 dark:text-white">
+                Password
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fas fa-user text-gray-400"></i>
-                </div>
-                <input
-                  type="text"
-                  id="username"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  autoFocus
-                  placeholder="Ingresa tu usuario"
-                />
+              <div className="text-sm">
+                <a href="#" className="font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+                  Forgot password?
+                </a>
               </div>
             </div>
-
-            <div>
-              <label 
-                htmlFor="password" 
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Contraseña
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fas fa-lock text-gray-400"></i>
-                </div>
-                <input
-                  type="password"
-                  id="password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Ingresa tu contraseña"
-                />
-              </div>
+            <div className="mt-2">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-primary-600 dark:focus:ring-primary-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800 px-3"
+                placeholder="Ingresa tu contraseña"
+              />
             </div>
+          </div>
 
+          <div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
-                <>
+                <span className="flex items-center gap-2">
                   <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>Iniciando sesión...</span>
-                </>
+                  Iniciando sesión...
+                </span>
               ) : (
-                <>
-                  <i className="fas fa-sign-in-alt"></i>
-                  <span>Iniciar Sesión</span>
-                </>
+                'Sign in'
               )}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
+
+        <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
+          Don't have an account?{' '}
+          <a href="#" className="font-semibold leading-6 text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+            Sign up
+          </a>
+        </p>
       </div>
     </div>
   )

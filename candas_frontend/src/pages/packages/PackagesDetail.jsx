@@ -15,6 +15,7 @@ import {
   PackageCodeMigration 
 } from '../../components/domain/packages'
 import { QRCodeDisplay, StatCard } from '../../components/domain/common'
+import { getEntityColor } from '../../utils/entityColors'
 
 const PackagesDetail = () => {
   const { id } = useParams()
@@ -221,10 +222,10 @@ const PackagesDetail = () => {
       </div>
 
       {/* Breadcrumb de Jerarquía */}
-      <Card className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-700">
+      <Card className={`${getEntityColor('lote', 'bg')} ${getEntityColor('lote', 'border')} border`}>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            <i className="fas fa-sitemap text-orange-500"></i>
+            <i className={`fas fa-sitemap ${getEntityColor('lote', 'icon')}`}></i>
             <span>Jerarquía:</span>
           </div>
           
@@ -233,9 +234,9 @@ const PackagesDetail = () => {
               <>
                 <Link
                   to={`/logistica/batches/${packageData.batch_info.id}`}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+                  className={`flex items-center gap-2 px-3 py-1.5 bg-primary-600 dark:bg-primary-500 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium ${getEntityColor('lote', 'hover')}`}
                 >
-                  <i className="fas fa-layer-group"></i>
+                  <i className={`fas fa-layer-group ${getEntityColor('lote', 'icon')}`}></i>
                   <span>Lote: {packageData.batch_info.destiny}</span>
                 </Link>
                 <i className="fas fa-chevron-right text-gray-400"></i>
@@ -246,9 +247,9 @@ const PackagesDetail = () => {
               <>
                 <Link
                   to={`/logistica/pulls/${packageData.pull}`}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium"
+                  className={`flex items-center gap-2 px-3 py-1.5 bg-accent-600 dark:bg-accent-500 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium ${getEntityColor('saca', 'hover')}`}
                 >
-                  <i className="fas fa-boxes"></i>
+                  <i className={`fas fa-boxes ${getEntityColor('saca', 'icon')}`}></i>
                   <span>Saca: {packageData.pull_info.common_destiny}</span>
                 </Link>
                 <i className="fas fa-chevron-right text-gray-400"></i>
@@ -488,7 +489,7 @@ const PackagesDetail = () => {
                   {packageData.effective_destiny || `${packageData.city}, ${packageData.province}`}
                 </p>
                 {packageData.data_source && packageData.data_source.destiny_source !== 'package' && (
-                  <p className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                  <p className={`text-xs ${getEntityColor(packageData.data_source.destiny_source === 'batch' ? 'lote' : 'saca', 'text')} flex items-center gap-1`}>
                     <i className="fas fa-arrow-down"></i>
                     Heredado de {packageData.data_source.destiny_source === 'batch' ? 'Lote' : 'Saca'}
                   </p>
@@ -503,7 +504,7 @@ const PackagesDetail = () => {
                   {packageData.effective_transport_agency?.name || 'Sin asignar'}
                 </p>
                 {packageData.data_source && packageData.data_source.agency_source !== 'package' && (
-                  <p className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                  <p className={`text-xs ${getEntityColor(packageData.data_source.agency_source === 'batch' ? 'lote' : 'saca', 'text')} flex items-center gap-1`}>
                     <i className="fas fa-arrow-down"></i>
                     Heredado de {packageData.data_source.agency_source === 'batch' ? 'Lote' : 'Saca'}
                   </p>
@@ -518,7 +519,7 @@ const PackagesDetail = () => {
                   {packageData.effective_guide_number || 'Sin guía'}
                 </p>
                 {packageData.data_source && packageData.data_source.guide_source !== 'package' && (
-                  <p className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                  <p className={`text-xs ${getEntityColor(packageData.data_source.guide_source === 'batch' ? 'lote' : 'saca', 'text')} flex items-center gap-1`}>
                     <i className="fas fa-arrow-down"></i>
                     Heredado de {packageData.data_source.guide_source === 'batch' ? 'Lote' : 'Saca'}
                   </p>
@@ -802,7 +803,7 @@ const PackagesDetail = () => {
                 icon="fas fa-boxes"
                 value={packageData.pull_info.package_count || '?'}
                 label="Paquetes en Saca"
-                color="purple"
+                color="accent"
                 loading={loadingStats}
               />
             )}
@@ -812,7 +813,7 @@ const PackagesDetail = () => {
                 icon="fas fa-layer-group"
                 value={packageData.batch_info.pull_count || '?'}
                 label="Sacas en Lote"
-                color="orange"
+                color="primary"
                 loading={loadingStats}
               />
             )}
@@ -878,11 +879,11 @@ const PackagesDetail = () => {
             <Card 
               header={
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <i className="fas fa-layer-group text-orange-500"></i>
+                  <i className={`fas fa-layer-group ${getEntityColor('lote', 'icon')}`}></i>
                   Lote Asignado
                 </h3>
               }
-              className="border-orange-200 dark:border-orange-700"
+              className={`${getEntityColor('lote', 'border')} border`}
             >
               <div className="space-y-3">
                 <div>
@@ -915,11 +916,11 @@ const PackagesDetail = () => {
             <Card 
               header={
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <i className="fas fa-boxes text-purple-500"></i>
+                  <i className={`fas fa-boxes ${getEntityColor('saca', 'icon')}`}></i>
                   Saca Asignada
                 </h3>
               }
-              className="border-purple-200 dark:border-purple-700"
+              className={`${getEntityColor('saca', 'border')} border`}
             >
               <div className="space-y-3">
                 <div>

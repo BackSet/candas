@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Sidebar as FlowbiteSidebar, SidebarItems, SidebarItemGroup } from 'flowbite-react'
+import { useAuth } from '../../contexts/AuthContext'
+import ThemeToggle from '../theme/ThemeToggle'
 
-const Sidebar = () => {
+const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const location = useLocation()
-  const [isOpen, setIsOpen] = useState(false)
+  const { user } = useAuth()
   const [expandedSections, setExpandedSections] = useState({
     logistics: true,
     'logistics-pulls': false,
@@ -21,6 +22,14 @@ const Sidebar = () => {
     config: false,
   })
 
+  // Cerrar menú móvil al cambiar de ruta
+  useEffect(() => {
+    if (mobileMenuOpen && setMobileMenuOpen) {
+      setMobileMenuOpen(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -33,7 +42,7 @@ const Sidebar = () => {
       id: 'dashboard',
       type: 'single',
       path: '/',
-      icon: 'fas fa-chart-line',
+      icon: 'fas fa-home',
       label: 'Dashboard',
     },
     {
@@ -183,192 +192,182 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed bottom-4 right-4 z-50 p-4 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors touch-target"
-        aria-label="Menú"
-      >
-        <i className={`fas ${isOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
-      </button>
-
-      {/* Overlay para móvil */}
-      {isOpen && (
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-          onClick={() => setIsOpen(false)}
-        ></div>
+          className="fixed inset-0 z-40 bg-gray-900/80 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
-      <FlowbiteSidebar
-        aria-label="Navegación principal"
+      <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-40
-          w-64 min-h-screen transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          fixed top-0 left-0 z-50 h-screen w-64 transition-transform flex flex-col
+          bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo */}
-        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg shadow-sm">
-              <i className="fas fa-truck text-white"></i>
+        <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-primary-600 rounded-lg">
+              <i className="fas fa-truck text-sm text-white"></i>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <span className="self-center whitespace-nowrap text-xl font-semibold text-gray-900 dark:text-white">
               Candas
-            </h2>
-          </div>
+            </span>
+          </Link>
+          <ThemeToggle className="w-9 h-9" />
         </div>
 
         {/* Navigation */}
-        <SidebarItems className="p-3 sm:p-4 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-          <SidebarItemGroup>
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+          <div className="space-y-1">
             {menuSections.map((section) => {
-            if (section.type === 'single') {
-              // Item individual (Dashboard)
-              return (
-                <Link
-                  key={section.path}
-                  to={section.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group touch-target ${
-                    isActive(section.path)
-                      ? 'bg-blue-600 text-white shadow-md font-semibold'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <i className={`${section.icon} w-5 text-center ${
-                    isActive(section.path) 
-                      ? 'text-white' 
-                      : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                  }`}></i>
-                  <span className="font-medium">{section.label}</span>
-                </Link>
-              )
-            }
-
-            // Sección con submódulos
-            const isExpanded = expandedSections[section.id]
-            const hasActiveItem = isSectionActive(section.items)
-
-            return (
-              <div key={section.id} className="space-y-1">
-                {/* Encabezado de sección */}
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all duration-200 group touch-target ${
-                    hasActiveItem
-                      ? 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <i className={`${section.icon} w-5 text-center ${
-                      hasActiveItem
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                    }`}></i>
-                    <span className="font-medium">{section.label}</span>
-                  </div>
-                  <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${
-                    isExpanded ? 'rotate-180' : ''
-                  } ${hasActiveItem ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}></i>
-                </button>
-
-                {/* Submódulos */}
-                {isExpanded && (
-                  <div className="ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
-                    {section.items.map((item) => {
-                      // Si es una subsección
-                      if (item.type === 'subsection') {
-                        const isSubExpanded = expandedSections[item.id]
-                        const hasActiveSubItem = isSectionActive(item.items)
-                        
-                        return (
-                          <div key={item.id} className="space-y-1">
-                            {/* Encabezado de subsección */}
-                            <button
-                              onClick={() => toggleSection(item.id)}
-                              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm touch-target ${
-                                hasActiveSubItem
-                                  ? 'bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400'
-                                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <i className={`${item.icon} w-4 text-center text-xs ${
-                                  hasActiveSubItem ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'
-                                }`}></i>
-                                <span className="font-medium">{item.label}</span>
-                              </div>
-                              <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${
-                                isSubExpanded ? 'rotate-180' : ''
-                              }`}></i>
-                            </button>
-                            
-                            {/* Items de subsección */}
-                            {isSubExpanded && (
-                              <div className="ml-3 pl-3 border-l-2 border-gray-100 dark:border-gray-700 space-y-1">
-                                {item.items.map((subItem) => (
-                                  <Link
-                                    key={subItem.path}
-                                    to={subItem.path}
-                                    onClick={() => setIsOpen(false)}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm touch-target ${
-                                      isActive(subItem.path)
-                                        ? 'bg-blue-600 text-white shadow-md font-semibold'
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                    }`}
-                                  >
-                                    <i className={`${subItem.icon} w-4 text-center text-xs ${
-                                      isActive(subItem.path) ? 'text-white' : 'text-gray-500 dark:text-gray-400'
-                                    }`}></i>
-                                    <span>{subItem.label}</span>
-                                  </Link>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
+              if (section.type === 'single') {
+                const active = isActive(section.path)
+                return (
+                  <Link
+                    key={section.path}
+                    to={section.path}
+                    onClick={() => setMobileMenuOpen?.(false)}
+                    className={`
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      ${active
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                       }
-                      
-                      // Item regular
-                      return (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          onClick={() => setIsOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 group text-sm touch-target ${
-                            isActive(item.path)
-                              ? 'bg-blue-600 text-white shadow-md font-semibold'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          <i className={`${item.icon} w-4 text-center text-xs ${
-                            isActive(item.path) 
-                              ? 'text-white' 
-                              : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                          }`}></i>
-                          <span>{item.label}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-            })}
-          </SidebarItemGroup>
-        </SidebarItems>
+                    `}
+                  >
+                    <i className={`${section.icon} w-5 text-center`}></i>
+                    <span>{section.label}</span>
+                  </Link>
+                )
+              }
 
-        {/* Footer info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            v1.0.0
-          </p>
-        </div>
-      </FlowbiteSidebar>
+              const isExpanded = expandedSections[section.id]
+              const hasActiveItem = isSectionActive(section.items)
+
+              return (
+                <div key={section.id}>
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className={`
+                      flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      ${hasActiveItem
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                      }
+                    `}
+                  >
+                    <i className={`${section.icon} w-5 text-center`}></i>
+                    <span className="flex-1 text-left">{section.label}</span>
+                    <i className={`fas fa-chevron-up text-xs transition-transform ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}></i>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-1 space-y-1">
+                      {section.items.map((item) => {
+                        if (item.type === 'subsection') {
+                          const isSubExpanded = expandedSections[item.id]
+                          const hasActiveSubItem = isSectionActive(item.items)
+                          
+                          return (
+                            <div key={item.id}>
+                              <button
+                                onClick={() => toggleSection(item.id)}
+                                className={`
+                                  flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors
+                                  ${hasActiveSubItem
+                                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300'
+                                  }
+                                `}
+                              >
+                                <i className={`${item.icon} w-4 text-center`}></i>
+                                <span className="flex-1 text-left">{item.label}</span>
+                                <i className={`fas fa-chevron-up text-xs transition-transform ${
+                                  isSubExpanded ? 'rotate-180' : ''
+                                }`}></i>
+                              </button>
+                              
+                              {isSubExpanded && (
+                                <div className="mt-1 ml-4 space-y-1">
+                                  {item.items.map((subItem) => {
+                                    const subActive = isActive(subItem.path)
+                                    return (
+                                      <Link
+                                        key={subItem.path}
+                                        to={subItem.path}
+                                        onClick={() => setMobileMenuOpen?.(false)}
+                                        className={`
+                                          flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors
+                                          ${subActive
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300'
+                                          }
+                                        `}
+                                      >
+                                        <i className={`${subItem.icon} w-4 text-center`}></i>
+                                        <span>{subItem.label}</span>
+                                      </Link>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+                        
+                        const active = isActive(item.path)
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileMenuOpen?.(false)}
+                            className={`
+                              flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors
+                              ${active
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300'
+                              }
+                            `}
+                          >
+                            <i className={`${item.icon} w-4 text-center`}></i>
+                            <span>{item.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </nav>
+
+        {/* User Profile */}
+        {user && (
+          <div className="mt-auto shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 shrink-0">
+                <i className="fas fa-user text-xs text-white"></i>
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {user.username ?? 'Usuario'}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {user.email ?? ''}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   )
 }

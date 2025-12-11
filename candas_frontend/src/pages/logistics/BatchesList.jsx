@@ -7,6 +7,7 @@ import { Card, Button, DataTable, ExportButton, StatCard, TableActions, Document
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
+import { getEntityColor } from '../../utils/entityColors'
 
 const BatchesList = () => {
   const navigate = useNavigate()
@@ -134,11 +135,11 @@ const BatchesList = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+            <div className="w-14 h-14 bg-primary-600 dark:bg-primary-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
               <i className="fas fa-layer-group text-2xl text-white"></i>
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+              <h1 className={`text-3xl font-bold ${getEntityColor('lote', 'text')}`}>
                 Lotes
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -158,7 +159,7 @@ const BatchesList = () => {
             <Button
               variant="primary"
               onClick={() => navigate('/logistica/batches/crear-con-sacas')}
-              className="w-auto px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              className="w-auto px-6 py-3 bg-primary-600 dark:bg-primary-500 hover:bg-primary-700 dark:hover:bg-primary-600"
             >
               <i className="fas fa-magic mr-2"></i>
               Con Sacas
@@ -173,13 +174,13 @@ const BatchesList = () => {
           icon="fas fa-layer-group"
           value={batches.length}
           label="Total Lotes"
-          color="orange"
+          color="primary"
         />
         <StatCard
           icon="fas fa-boxes"
           value={totalPulls}
           label="Total Sacas"
-          color="purple"
+          color="accent"
         />
         <StatCard
           icon="fas fa-box"
@@ -203,7 +204,7 @@ const BatchesList = () => {
             header: 'Destino',
             cell: (batch) => (
               <div className="flex items-center gap-2">
-                <i className="fas fa-map-marker-alt text-orange-500 dark:text-orange-400"></i>
+                <i className={`fas fa-map-marker-alt ${getEntityColor('lote', 'icon')}`}></i>
                 <div>
                   <div className="font-semibold text-gray-900 dark:text-gray-100">
                     {batch.destiny}
@@ -256,8 +257,8 @@ const BatchesList = () => {
             header: 'Sacas', 
             align: 'center',
             cell: (batch) => (
-              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20">
-                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+              <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full ${getEntityColor('saca', 'bg')}`}>
+                <span className={`text-lg font-bold ${getEntityColor('saca', 'text')}`}>
                   {batch.pulls_count ?? 0}
                 </span>
               </div>

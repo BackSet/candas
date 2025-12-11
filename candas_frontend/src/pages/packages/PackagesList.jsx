@@ -5,6 +5,7 @@ import { EmptyState, ConfirmDialog, Card, Button, Badge, DataTable, TableActions
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
+import { getEntityColor, getEntityBadgeVariant, mapShipmentTypeToEntity } from '../../utils/entityColors'
 
 const PackagesList = () => {
   const navigate = useNavigate()
@@ -273,35 +274,26 @@ const PackagesList = () => {
             key: 'shipment_type', 
             header: 'Agrupación',
             cell: (pkg) => {
-              const getShipmentBadgeVariant = (type) => {
-                const variants = {
-                  'sin_asignar': 'default',
-                  'individual': 'info',
-                  'saca': 'warning',
-                  'lote': 'success'
-                }
-                return variants[type] || 'default'
-              }
-
               const shipmentType = pkg.shipment_type || 'sin_asignar'
               const shipmentTypeDisplay = pkg.shipment_type_display || 'Sin Asignar'
+              const entityType = mapShipmentTypeToEntity(shipmentType)
 
               if (shipmentType === 'lote' && pkg.batch_info) {
                 return (
                   <div className="flex flex-col gap-1">
                     <Link 
                       to={`/logistica/batches/${pkg.batch_info.id}`} 
-                      className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:underline"
+                      className={`text-sm font-medium ${getEntityColor('lote', 'text')} ${getEntityColor('lote', 'hover')} hover:underline`}
                     >
-                      <i className="fas fa-layer-group mr-1"></i>
+                      <i className={`fas fa-layer-group mr-1 ${getEntityColor('lote', 'icon')}`}></i>
                       Lote: {pkg.batch_info.destiny}
                     </Link>
                     {pkg.pull_info && (
                       <Link 
                         to={`/logistica/pulls/${pkg.pull}`} 
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline pl-4"
+                        className={`text-xs ${getEntityColor('saca', 'text')} ${getEntityColor('saca', 'hover')} hover:underline pl-4`}
                       >
-                        <i className="fas fa-box mr-1"></i>
+                        <i className={`fas fa-boxes mr-1 ${getEntityColor('saca', 'icon')}`}></i>
                         Saca: {pkg.pull_info.common_destiny}
                       </Link>
                     )}
@@ -313,16 +305,16 @@ const PackagesList = () => {
                 return (
                   <Link 
                     to={`/logistica/pulls/${pkg.pull}`} 
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className={`text-sm ${getEntityColor('saca', 'text')} ${getEntityColor('saca', 'hover')} hover:underline`}
                   >
-                    <i className="fas fa-box mr-1"></i>
+                    <i className={`fas fa-boxes mr-1 ${getEntityColor('saca', 'icon')}`}></i>
                     Saca: {pkg.pull_info.common_destiny}
                   </Link>
                 )
               }
 
               return (
-                <Badge variant={getShipmentBadgeVariant(shipmentType)}>
+                <Badge variant={getEntityBadgeVariant(entityType)}>
                   {shipmentTypeDisplay}
                 </Badge>
               )
