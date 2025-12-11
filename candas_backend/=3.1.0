@@ -1,0 +1,20 @@
+Collecting pandas
+  Downloading pandas-2.3.3-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+Requirement already satisfied: openpyxl in ./venv_candas/lib/python3.13/site-packages (3.1.5)
+Collecting numpy>=1.26.0 (from pandas)
+  Downloading numpy-2.3.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+Requirement already satisfied: python-dateutil>=2.8.2 in ./venv_candas/lib/python3.13/site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: pytz>=2020.1 in ./venv_candas/lib/python3.13/site-packages (from pandas) (2025.2)
+Requirement already satisfied: tzdata>=2022.7 in ./venv_candas/lib/python3.13/site-packages (from pandas) (2025.2)
+Requirement already satisfied: et-xmlfile in ./venv_candas/lib/python3.13/site-packages (from openpyxl) (2.0.0)
+Requirement already satisfied: six>=1.5 in ./venv_candas/lib/python3.13/site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+Downloading pandas-2.3.3-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.3/12.3 MB 734.8 kB/s eta 0:00:00
+
+Downloading numpy-2.3.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 950.8 kB/s eta 0:00:00
+
+Installing collected packages: numpy, pandas
+
+
+Successfully installed numpy-2.3.5 pandas-2.3.3

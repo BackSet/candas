@@ -1,0 +1,333 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Avenir, Helvetica, Arial, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    
+    /* Color variables for light mode */
+    --color-surface: 255 255 255;
+    --color-surface-elevated: 255 255 255;
+    --color-background: 255 255 255;
+    --color-background-secondary: 248 250 252;
+    --color-text-primary: 15 23 42;
+    --color-text-secondary: 71 85 105;
+    --color-text-tertiary: 148 163 184;
+    --color-border: 226 232 240;
+    --color-border-subtle: 241 245 249;
+  }
+
+  .dark {
+    /* Color variables for dark mode */
+    --color-surface: 30 41 59;
+    --color-surface-elevated: 51 65 85;
+    --color-background: 15 23 42;
+    --color-background-secondary: 30 41 59;
+    --color-text-primary: 241 245 249;
+    --color-text-secondary: 203 213 225;
+    --color-text-tertiary: 148 163 184;
+    --color-border: 51 65 85;
+    --color-border-subtle: 71 85 105;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
+  }
+
+  #root {
+    @apply w-full min-h-screen;
+  }
+
+  /* Typography base styles */
+  h1 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  h2 {
+    font-size: 2rem;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    font-weight: 600;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  h4 {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    letter-spacing: 0;
+    font-weight: 600;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  h5 {
+    font-size: 1.125rem;
+    line-height: 1.5;
+    letter-spacing: 0;
+    font-weight: 600;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  h6 {
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0;
+    font-weight: 600;
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  p {
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0;
+    font-weight: 400;
+    @apply text-gray-600 dark:text-gray-300;
+  }
+
+  /* Mejorar placeholders en modo oscuro */
+  ::placeholder {
+    @apply text-gray-400 dark:text-gray-500;
+    opacity: 1;
+  }
+
+  /* Mejorar selección de texto */
+  ::selection {
+    @apply bg-primary-200 dark:bg-primary-800 text-gray-900 dark:text-gray-100;
+  }
+
+  ::-moz-selection {
+    @apply bg-primary-200 dark:bg-primary-800 text-gray-900 dark:text-gray-100;
+  }
+
+  /* Scrollbar global adaptable al tema */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+
+  .dark * {
+    scrollbar-color: #475569 #1e293b;
+  }
+
+  /* Webkit scrollbar (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Dark mode scrollbar */
+  .dark ::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+
+  /* Scrollbar corner (donde se cruzan las barras) */
+  ::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+  }
+
+  .dark ::-webkit-scrollbar-corner {
+    background: #1e293b;
+  }
+}
+
+@layer components {
+  /* Scrollbar personalizado */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+
+  /* Mejoras para mobile */
+  @media (max-width: 640px) {
+    .custom-scrollbar::-webkit-scrollbar {
+      @apply w-1 h-1;
+    }
+  }
+
+  /* Mejorar contraste de iconos en modo oscuro */
+  .dark i.fas,
+  .dark i.far,
+  .dark i.fab {
+    filter: brightness(1.1);
+  }
+
+  /* Ocultar el div decorativo de Flowbite Table que causa problemas de visualización */
+  /* Selector específico para el div problemático con todas sus clases */
+  div.absolute.left-0.top-0.-z-10.h-full.rounded-lg.bg-white.drop-shadow-md.dark\\:bg-black.w-full,
+  div[class*="absolute"][class*="left-0"][class*="top-0"][class*="-z-10"][class*="drop-shadow-md"][class*="bg-white"][class*="dark:bg-black"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* Selector más amplio para capturar variaciones del elemento */
+  .relative > div.absolute.left-0.top-0.-z-10,
+  .relative div[class*="absolute"][class*="-z-10"][class*="drop-shadow"] {
+    display: none !important;
+  }
+
+  /* Modal Styles - Mejorar diseño de modales */
+  /* Animación de entrada del modal */
+  [data-testid="modal"] {
+    animation: modalFadeIn 0.2s ease-out;
+  }
+
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Contenido del modal con animación de entrada */
+  [data-testid="modal-content"] {
+    animation: modalSlideIn 0.25s ease-out;
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* Mejorar estilo de kbd/teclas en modales */
+  kbd {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .dark kbd {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Utilities para better touch targets en móvil */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Responsive typography utilities */
+  @media (max-width: 640px) {
+    .responsive-text {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+  }
+
+  /* Smooth transitions for theme changes */
+  .theme-transition {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Focus visible for better accessibility */
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900;
+  }
+
+  /* Responsive typography utilities */
+  .responsive-heading {
+    font-size: 1.5rem;
+    line-height: 1.4;
+    @apply sm:text-2xl lg:text-4xl;
+  }
+
+  .responsive-body {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    @apply sm:text-base;
+  }
+
+  .responsive-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .responsive-spacing {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    /* Optimize animations for mobile performance */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Better touch targets */
+    button, a, input[type="button"], input[type="submit"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
