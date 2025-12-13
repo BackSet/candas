@@ -91,6 +91,23 @@ const PullsDetail = () => {
     }
   }
 
+  const handleGenerateNotificationMessage = async () => {
+    try {
+      const data = await pullsService.generateNotificationMessage(id)
+      
+      // Copiar mensaje al portapapeles
+      await navigator.clipboard.writeText(data.message)
+      toast.success('Mensaje de notificación copiado al portapapeles')
+      
+      // Mostrar el mensaje en un modal o alerta
+      const messageWithDetails = `${data.message}\n\nDetalles:\n- Agencia: ${data.agency_name}\n- Número de guía: ${data.guide_number}\n- Total de paquetes: ${data.total_packages}`
+      alert(messageWithDetails)
+    } catch (error) {
+      console.error('Error al generar mensaje:', error)
+      toast.error(error.response?.data?.error || 'Error al generar el mensaje de notificación')
+    }
+  }
+
   const getSizeBadgeVariant = (size) => {
     switch (size) {
       case 'PEQUENO':
@@ -152,6 +169,14 @@ const PullsDetail = () => {
             icon={<i className="fas fa-tag"></i>}
           >
             Generar Etiqueta
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleGenerateNotificationMessage}
+            className="w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            icon={<i className="fas fa-envelope"></i>}
+          >
+            Mensaje de Envío
           </Button>
         </div>
         </div>

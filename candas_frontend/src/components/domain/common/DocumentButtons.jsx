@@ -9,10 +9,12 @@ const DocumentButtons = ({
   onPDF,
   onExcel,
   onLabel,
+  onMessage,
   onCustom,
   showPDF = true,
   showExcel = true,
   showLabel = true,
+  showMessage = false,
   customButtons = [],
   className = '',
 }) => {
@@ -49,6 +51,16 @@ const DocumentButtons = ({
       await onLabel(itemId)
     } finally {
       setLoading(`label_${itemId}`, false)
+    }
+  }
+
+  const handleMessage = async () => {
+    if (!onMessage) return
+    setLoading(`message_${itemId}`, true)
+    try {
+      await onMessage(itemId)
+    } finally {
+      setLoading(`message_${itemId}`, false)
     }
   }
 
@@ -101,6 +113,21 @@ const DocumentButtons = ({
         </button>
       )}
 
+      {showMessage && onMessage && (
+        <button
+          onClick={handleMessage}
+          disabled={isLoading(`message_${itemId}`)}
+          className="px-3 py-2.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          title="Generar mensaje de notificación"
+        >
+          {isLoading(`message_${itemId}`) ? (
+            <i className="fas fa-spinner fa-spin"></i>
+          ) : (
+            <i className="fas fa-envelope"></i>
+          )}
+        </button>
+      )}
+
       {customButtons.map((button, index) => (
         <button
           key={index}
@@ -135,10 +162,12 @@ DocumentButtons.propTypes = {
   onPDF: PropTypes.func,
   onExcel: PropTypes.func,
   onLabel: PropTypes.func,
+  onMessage: PropTypes.func,
   onCustom: PropTypes.func,
   showPDF: PropTypes.bool,
   showExcel: PropTypes.bool,
   showLabel: PropTypes.bool,
+  showMessage: PropTypes.bool,
   customButtons: PropTypes.arrayOf(
     PropTypes.shape({
       onClick: PropTypes.func.isRequired,

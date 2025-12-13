@@ -16,7 +16,8 @@ const PackageExport = () => {
     transport_agency: '',
     date_from: '',
     date_to: '',
-    search: ''
+    search: '',
+    hashtags: ''
   })
   const [scope, setScope] = useState('all') // 'all' o 'page'
   const [selectedColumns, setSelectedColumns] = useState([])
@@ -182,6 +183,7 @@ const PackageExport = () => {
       if (filters.shipment_type) params.shipment_type = filters.shipment_type
       if (filters.transport_agency) params.transport_agency = filters.transport_agency
       if (filters.search) params.search = filters.search
+      if (filters.hashtags) params.hashtags = filters.hashtags
       
       const data = await packagesService.list(params)
       setEstimatedCount(data.count || data.results?.length || 0)
@@ -213,6 +215,7 @@ const PackageExport = () => {
         if (filters.date_from) params.date_from = filters.date_from
         if (filters.date_to) params.date_to = filters.date_to
         if (filters.search) params.search = filters.search
+        if (filters.hashtags) params.hashtags = filters.hashtags
       }
 
       const data = await packagesService.list(params)
@@ -294,7 +297,8 @@ const PackageExport = () => {
           transport_agency: filters.transport_agency,
           date_from: filters.date_from,
           date_to: filters.date_to,
-          search: filters.search
+          search: filters.search,
+          hashtags: filters.hashtags
         } : {},
         scope: scope,
         page_ids: []
@@ -524,6 +528,15 @@ const PackageExport = () => {
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 placeholder="Guía, nombre..."
+              />
+
+              {/* Hashtags */}
+              <FormField
+                label="Hashtags"
+                type="text"
+                value={filters.hashtags}
+                onChange={(e) => handleFilterChange('hashtags', e.target.value)}
+                placeholder="Ej: #urgente, #fragil..."
               />
             </div>
           )}

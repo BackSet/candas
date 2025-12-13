@@ -294,7 +294,7 @@ class BatchDetailSerializer(serializers.ModelSerializer):
     
     def get_pulls_list(self, obj):
         """Lista de sacas del lote"""
-        pulls = obj.pulls.all()
+        pulls = obj.pulls.all().order_by('created_at')
         return PullListSerializer(pulls, many=True).data
 
 
@@ -399,6 +399,55 @@ class DispatchSerializer(serializers.ModelSerializer):
     def get_total_packages(self, obj):
         """Retorna el total de paquetes (en sacas + individuales)"""
         return obj.get_total_packages()
+
+
+class DispatchDetailSerializer(serializers.ModelSerializer):
+    """Serializer detallado para Dispatch"""
+    packages_count = serializers.SerializerMethodField()
+    pulls_count = serializers.SerializerMethodField()
+    total_packages = serializers.SerializerMethodField()
+    pulls_list = serializers.SerializerMethodField()
+    packages_list = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Dispatch
+        fields = [
+            'id',
+            'dispatch_date',
+            'status',
+            'notes',
+            'packages_count',
+            'pulls_count',
+            'total_packages',
+            'pulls_list',
+            'packages_list',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_packages_count(self, obj):
+        """Retorna la cantidad de paquetes individuales (sin pull)"""
+        return obj.packages.count()
+    
+    def get_pulls_count(self, obj):
+        """Retorna la cantidad de sacas"""
+        return obj.pulls.count()
+    
+    def get_total_packages(self, obj):
+        """Retorna el total de paquetes (en sacas + individuales)"""
+        return obj.get_total_packages()
+    
+    def get_pulls_list(self, obj):
+        """Lista de sacas del despacho"""
+        pulls = obj.pulls.all()
+        return PullListSerializer(pulls, many=True).data
+    
+    def get_packages_list(self, obj):
+        """Lista de paquetes individuales del despacho"""
+        from apps.packages.api.serializers import PackageListSerializer
+        packages = obj.packages.all()
+        return PackageListSerializer(packages, many=True).data
 
 
 class PullItemSerializer(serializers.Serializer):

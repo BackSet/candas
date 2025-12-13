@@ -48,7 +48,6 @@ const CreateIndividualPackage = () => {
       const [agenciesResponse, packagesData] = await Promise.all([
         catalogService.getTransportAgencies(),
         packagesService.list({
-          status: 'EN_BODEGA',
           shipment_type: 'sin_envio',
           page_size: 100
         })
@@ -282,7 +281,7 @@ const CreateIndividualPackage = () => {
             </button>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            En Bodega, Sin Saca, Sin Lote
+            Sin Saca, Sin Lote
           </p>
           <div className="space-y-4">
             {/* Campo de busqueda */}

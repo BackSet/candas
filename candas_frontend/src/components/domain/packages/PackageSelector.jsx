@@ -47,9 +47,13 @@ const PackageSelector = ({
   const loadAvailablePackages = async () => {
     try {
       setLoading(true)
-      const data = filterAvailable
-        ? await packagesService.getAvailable()
-        : await packagesService.list()
+      let data
+      if (filterAvailable) {
+        // Para despachos, solo mostrar paquetes de envío individual (sin saca, con agencia)
+        data = await packagesService.list({ shipment_type: 'individual' })
+      } else {
+        data = await packagesService.list()
+      }
       
       let packages = data.results || data
       
@@ -109,17 +113,16 @@ const PackageSelector = ({
       e.preventDefault()
       const code = scanCode.trim()
       
-      try {
-        // Primero intentar buscar por código de barras (método específico que devuelve el paquete completo)
-        let pkg = null
         try {
-          pkg = await packagesService.searchByBarcode(code)
-        } catch (barcodeError) {
-          // Si no se encuentra por barcode, intentar con búsqueda general
-          const data = await packagesService.list({ 
-            search: code,
-            status: 'EN_BODEGA'
-          })
+          // Primero intentar buscar por código de barras (método específico que devuelve el paquete completo)
+          let pkg = null
+          try {
+            pkg = await packagesService.searchByBarcode(code)
+          } catch (barcodeError) {
+            // Si no se encuentra por barcode, intentar con búsqueda general
+            const data = await packagesService.list({ 
+              search: code
+            })
           
           const packages = data.results || data
           
@@ -237,6 +240,35 @@ const PackageSelector = ({
             value={selectedPackages}
             onChange={handleDropdownChange}
             getOptionLabel={(option) => formatDropdownLabel(option)}
+            formatOptionLabel={(option) => {
+              // react-select puede pasar el objeto directamente o con estructura { label, value, data }
+              let pkg = option
+              if (option && typeof option === 'object' && 'data' in option) {
+                pkg = option.data
+              }
+              
+              // Si pkg es null o undefined, retornar string vacío
+              if (!pkg) {
+                return ''
+              }
+              
+              const label = formatDropdownLabel(pkg)
+              // Extraer y resaltar la fecha si existe (ahora está al inicio)
+              const dateMatch = label.match(/^📅\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*(.+)$/)
+              if (dateMatch) {
+                const date = dateMatch[1]
+                const restOfLabel = dateMatch[2]
+                return (
+                  <div>
+                    <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">
+                      📅 {date} -
+                    </span>
+                    <span>{restOfLabel}</span>
+                  </div>
+                )
+              }
+              return label
+            }}
             getOptionValue={(option) => option.id}
             placeholder="Buscar por guía, nombre, ciudad o dirección..."
             noOptionsMessage={() => 'No hay paquetes disponibles'}

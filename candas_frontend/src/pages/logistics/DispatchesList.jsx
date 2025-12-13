@@ -1,7 +1,8 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import dispatchesService from '../../services/dispatchesService'
-import { Button, DataTable, Badge, TableActions, StatCard } from '../../components'
+import { Button, DataTable, Badge, TableActions, StatCard, Modal, ModalHeader, ModalBody, ModalFooter } from '../../components'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
@@ -9,6 +10,9 @@ import { getEntityColor } from '../../utils/entityColors'
 
 const DispatchesList = () => {
   const navigate = useNavigate()
+  const [exportModal, setExportModal] = useState({ show: false, dispatchId: null })
+  const [selectedGuideStatus, setSelectedGuideStatus] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   // Función de fetch estabilizada con useCallback
   const fetchFunction = useCallback(
@@ -124,14 +128,67 @@ const DispatchesList = () => {
     {
       header: 'Acciones',
       accessor: 'id',
-      cell: (row) => (
-        <TableActions
-          itemId={row.id}
-          viewPath="/logistica/dispatches/:id"
-          onDelete={() => handleDelete(row.id)}
-          showEdit={false}
-        />
-      ),
+      cell: (row) => {
+        const handleGeneratePDF = async (e) => {
+          e.stopPropagation()
+          try {
+            await dispatchesService.generateManifest(row.id)
+            toast.success('Manifiesto PDF generado correctamente')
+          } catch (error) {
+            toast.error('Error al generar manifiesto PDF')
+            logger.error(error)
+          }
+        }
+        
+        const handleGenerateExcel = async (e) => {
+          e.stopPropagation()
+          try {
+            await dispatchesService.generateManifestExcel(row.id)
+            toast.success('Manifiesto Excel generado correctamente')
+          } catch (error) {
+            toast.error('Error al generar manifiesto Excel')
+            logger.error(error)
+          }
+        }
+
+        const handleOpenExportModal = (e) => {
+          e.stopPropagation()
+          setExportModal({ show: true, dispatchId: row.id })
+          setSelectedGuideStatus('')
+        }
+        
+        return (
+          <div className="flex items-center gap-2">
+            <TableActions
+              itemId={row.id}
+              viewPath={`/logistica/dispatches/${row.id}`}
+              onDelete={() => handleDelete(row.id)}
+              showEdit={false}
+            />
+            <button
+              onClick={handleGeneratePDF}
+              className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+              title="Generar Manifiesto PDF"
+            >
+              <i className="fas fa-file-pdf"></i>
+            </button>
+            <button
+              onClick={handleGenerateExcel}
+              className="p-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors"
+              title="Generar Manifiesto Excel"
+            >
+              <i className="fas fa-file-excel"></i>
+            </button>
+            <button
+              onClick={handleOpenExportModal}
+              className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              title="Exportar Excel (Formato Transportadora)"
+            >
+              <i className="fas fa-download"></i>
+            </button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -222,6 +279,97 @@ const DispatchesList = () => {
         emptyActionLabel="Crear Despacho"
         onEmptyAction={() => navigate('/logistica/dispatches/crear')}
       />
+
+      {/* Modal para Exportar Excel con Formato Personalizado */}
+      <Modal
+        show={exportModal.show}
+        onClose={() => {
+          setExportModal({ show: false, dispatchId: null })
+          setSelectedGuideStatus('')
+        }}
+        size="md"
+      >
+        <ModalHeader
+          icon="fas fa-file-excel"
+          iconGradient="from-green-500 to-emerald-600"
+        >
+          Exportar Excel (Formato Transportadora)
+        </ModalHeader>
+        <ModalBody>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Selecciona el estado de guía que deseas usar para todos los paquetes en el Excel.
+              Si no seleccionas ninguno, se usará el estado actual de cada paquete.
+            </p>
+            <div>
+              <label htmlFor="guide-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Estado de Guía:
+              </label>
+              <select
+                id="guide-status"
+                value={selectedGuideStatus}
+                onChange={(e) => setSelectedGuideStatus(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="">Usar estado actual de cada paquete</option>
+                <option value="DEVOLUCION TRANSPORTADORA">DEVOLUCION TRANSPORTADORA</option>
+                <option value="ENTREGADA A DESTINATARIO">ENTREGADA A DESTINATARIO</option>
+                <option value="ENTREGADA A TRANSPORTADORA">ENTREGADA A TRANSPORTADORA</option>
+                <option value="SALE PARA ENTREGA">SALE PARA ENTREGA</option>
+                <option value="SE RETIRA DEL DESPACHO">SE RETIRA DEL DESPACHO</option>
+              </select>
+            </div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <i className="fas fa-info-circle mr-2"></i>
+                El Excel incluirá las columnas: FECHA, HORA, HAWB/REFERENCIA, ESTADO DE GUIA, OBSERVACION, REMESA
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <div className="flex gap-2 flex-wrap w-full">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setExportModal({ show: false, dispatchId: null })
+                setSelectedGuideStatus('')
+              }}
+              disabled={exporting}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="success"
+              onClick={async () => {
+                if (!exportModal.dispatchId) return
+                setExporting(true)
+                try {
+                  toast.info('Generando Excel...')
+                  await dispatchesService.exportExcelCustomFormat(
+                    exportModal.dispatchId,
+                    selectedGuideStatus || null
+                  )
+                  toast.success('Excel descargado correctamente')
+                  setExportModal({ show: false, dispatchId: null })
+                  setSelectedGuideStatus('')
+                } catch (error) {
+                  console.error('Error al exportar Excel:', error)
+                  toast.error('Error al generar el Excel')
+                } finally {
+                  setExporting(false)
+                }
+              }}
+              disabled={exporting}
+              loading={exporting}
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              {exporting ? 'Exportando...' : 'Exportar Excel'}
+            </Button>
+          </div>
+        </ModalFooter>
+      </Modal>
     </div>
   )
 }

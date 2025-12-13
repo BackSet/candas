@@ -7,17 +7,17 @@ export const PACKAGE_DISPLAY_FIELDS = {
   guide_number: { label: 'Número de Guía', default: true, alwaysShow: true },
   nro_master: { label: 'Número Master', default: true },
   name: { label: 'Destinatario', default: true },
-  address: { label: 'Dirección', default: false },
+  address: { label: 'Dirección', default: true },
   city: { label: 'Ciudad', default: true },
   province: { label: 'Provincia', default: true },
-  phone_number: { label: 'Teléfono', default: false },
+  phone_number: { label: 'Teléfono', default: true },
   status: { label: 'Estado', default: true },
   status_display: { label: 'Estado (texto)', default: false },
-  notes: { label: 'Notas', default: false },
-  hashtags: { label: 'Hashtags', default: false },
-  transport_agency_name: { label: 'Agencia Transporte', default: false },
-  pull_name: { label: 'Saca', default: false },
-  created_at: { label: 'Fecha Creación', default: false },
+  notes: { label: 'Notas', default: true },
+  hashtags: { label: 'Hashtags', default: true },
+  transport_agency_name: { label: 'Agencia Transporte', default: true },
+  pull_name: { label: 'Saca', default: true },
+  created_at: { label: 'Fecha Creación', default: true },
 }
 
 const STORAGE_KEY = 'package_display_config'
@@ -42,7 +42,7 @@ export const usePackageDisplayConfig = () => {
       visibleFields: Object.entries(PACKAGE_DISPLAY_FIELDS)
         .filter(([_, field]) => field.default)
         .map(([key]) => key),
-      dropdownFormat: '{guide_number} - {nro_master} - {name} ({city})',
+      dropdownFormat: '📅 {created_at} - {guide_number} - {nro_master} - {name} ({city})',
       listFormat: 'detailed', // 'compact', 'detailed', 'custom'
     }
   })
@@ -138,7 +138,9 @@ export const usePackageDisplayConfig = () => {
         }
         return `Saca-${String(pkg.pull).substring(0, 8)}`
       case 'created_at':
-        return pkg.created_at ? new Date(pkg.created_at).toLocaleDateString('es-ES') : ''
+        if (!pkg.created_at) return ''
+        const date = new Date(pkg.created_at)
+        return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
       case 'hashtags':
         return Array.isArray(pkg.hashtags) ? pkg.hashtags.join(', ') : (pkg.hashtags || '')
       default: {
@@ -192,7 +194,7 @@ export const usePackageDisplayConfig = () => {
       visibleFields: Object.entries(PACKAGE_DISPLAY_FIELDS)
         .filter(([_, field]) => field.default)
         .map(([key]) => key),
-      dropdownFormat: '{guide_number} - {nro_master} - {name} ({city})',
+      dropdownFormat: '📅 {created_at} - {guide_number} - {nro_master} - {name} ({city})',
       listFormat: 'detailed',
     }
     setConfig(defaultConfig)

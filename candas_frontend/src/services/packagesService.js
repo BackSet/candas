@@ -233,6 +233,18 @@ export const packagesService = {
     })
     return response.data
   },
+
+  // Obtener URL de la imagen del código de barras
+  getBarcodeImageUrl: (id) => {
+    const baseURL = api.defaults.baseURL || ''
+    return `${baseURL}/api/v1/packages/${id}/barcode-image/`
+  },
+
+  // Generar mensaje de notificación
+  generateNotificationMessage: async (id) => {
+    const response = await api.get(`/api/v1/packages/${id}/generate_notification_message/`)
+    return response.data
+  },
 }
 
 export default packagesService

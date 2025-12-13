@@ -7,4 +7,5 @@ export { default as PackageChildrenManager } from './PackageChildrenManager'
 export { default as PackageCodeMigration } from './PackageCodeMigration'
 export { default as ColumnMapper } from './ColumnMapper'
 export { default as ImportHistory } from './ImportHistory'
+export { default as DeliveryAgencyRecommender } from './DeliveryAgencyRecommender'
 

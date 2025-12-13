@@ -164,101 +164,148 @@ class PackageLabelsGenerator:
     def generate_shipping_label_pdf(package):
         """
         Genera un PDF con etiqueta de envío simplificada.
-        Incluye solo:
-        - Nombre de la empresa
-        - Código de barras (generado con el número de guía)
-        - Número de guía (solo debajo del código de barras)
-        - Ciudad - Ecuador - Provincia
-        - Nombre del destinatario
-        - Número de teléfono
+        El rectángulo se ajusta al tamaño del contenido.
+        Distribución similar a imagen: header gris, izquierda (ciudad/nombre/tel), derecha (guía/barcode).
         """
         buffer = BytesIO()
+        # Usar A4 vertical
         c = canvas.Canvas(buffer, pagesize=A4)
         page_width, page_height = A4
         
-        # Configuración de márgenes (más compactos)
-        margin_left = 20 * mm
-        margin_top = 25 * mm
-        content_width = page_width - 2 * margin_left
+        # Configuración de márgenes
+        MARGIN_X = 5 * mm
+        MARGIN_Y = 5 * mm
         
-        y_position = page_height - margin_top
+        # Configuración de márgenes internos de la etiqueta
+        padding = 2 * mm
         
-        # ===== NOMBRE DE LA EMPRESA (centrado) =====
-        company_name = "MV SERVICES COURIER INC"
-        c.setFont("Helvetica-Bold", 18)
+        # Posición inicial (empezar desde arriba)
+        x = MARGIN_X
+        start_y = page_height - MARGIN_Y  # Empezar desde arriba con margen
+        
+        # Área de contenido (desde arriba con padding)
+        content_y = start_y - padding
+        
+        # Ancho de la etiqueta (ancho de página menos márgenes)
+        label_width = page_width - 2 * MARGIN_X
+        
+        # ===== TÍTULO: MV SERVICES (movido un poco más abajo) =====
+        company_name = "MV SERVICES"
+        c.setFont("Helvetica-Bold", 11)
         c.setFillColor(colors.black)
-        # Centrar el texto
-        text_width = c.stringWidth(company_name, "Helvetica-Bold", 18)
-        x_center = margin_left + (content_width - text_width) / 2
-        c.drawString(x_center, y_position, company_name)
-        y_position -= 15 * mm
+        text_width = c.stringWidth(company_name, "Helvetica-Bold", 11)
+        x_center = x + (label_width - text_width) / 2
+        # Mover más abajo: reducir la posición Y
+        title_y = content_y - 3 * mm
+        c.drawString(x_center, title_y, company_name)  # Movido 3mm más abajo
         
-        # ===== NÚMERO DE GUÍA (grande y destacado) =====
+        # Área de contenido principal (debajo del título, sin línea aún)
+        main_content_y = content_y - 7 * mm
+        
+        # ===== DISTRIBUCIÓN: IZQUIERDA (ciudad/nombre/tel) y DERECHA (guía/barcode) =====
         guide_number = package.guide_number or str(package.id)[:13].upper()
         
-        # Número de guía (grande y destacado, centrado)
-        c.setFont("Helvetica-Bold", 22)
-        text_width = c.stringWidth(guide_number, "Helvetica-Bold", 22)
-        x_center = margin_left + (content_width - text_width) / 2
-        c.drawString(x_center, y_position, guide_number)
-        y_position -= 15 * mm
+        # Dividir el ancho: 45% izquierda, 55% derecha (mejor proporción)
+        left_width = label_width * 0.45
+        right_width = label_width * 0.55
+        left_x = x + padding
+        right_x = x + left_width + padding * 1.5
         
-        # ===== CÓDIGO DE BARRAS =====
+        # Bajar un poco más los elementos del lado izquierdo
+        current_y = main_content_y - 3 * mm
         
-        # Generar código de barras Code128 del número de guía usando python-barcode
+        # ===== LADO IZQUIERDO: Ciudad, Nombre, Teléfono (centrados) =====
+        c.setFillColor(colors.black)
+        
+        # Ciudad - Ecuador (centrado)
+        city_text = f"{package.city} - ECUADOR"
+        c.setFont("Helvetica-Bold", 9)  # Aumentado de 8 a 9
+        text_width = c.stringWidth(city_text, "Helvetica-Bold", 9)
+        left_center_x = left_x + (left_width - text_width) / 2
+        c.drawString(left_center_x, current_y, city_text)
+        current_y -= 6 * mm  # Aumentado de 5mm a 6mm
+        
+        # Nombre del destinatario (centrado)
+        recipient_name = package.name.upper() if package.name else "SIN NOMBRE"
+        # Truncar si es muy largo
+        if len(recipient_name) > 28:
+            recipient_name = recipient_name[:25] + "..."
+        c.setFont("Helvetica-Bold", 10)  # Aumentado de 9 a 10
+        text_width = c.stringWidth(recipient_name, "Helvetica-Bold", 10)
+        left_center_x = left_x + (left_width - text_width) / 2
+        c.drawString(left_center_x, current_y, recipient_name)
+        current_y -= 6 * mm  # Aumentado de 5mm a 6mm
+        
+        # Teléfono (centrado)
+        phone = package.phone_number if package.phone_number else "-"
+        c.setFont("Helvetica", 9)  # Aumentado de 8 a 9
+        text_width = c.stringWidth(phone, "Helvetica", 9)
+        left_center_x = left_x + (left_width - text_width) / 2
+        c.drawString(left_center_x, current_y, phone)
+        
+        # ===== LADO DERECHO: Número de guía grande + Código de barras =====
+        right_current_y = main_content_y - 2 * mm  # Movido 2mm más abajo
+        
+        # Número de guía (grande y destacado)
+        c.setFont("Helvetica-Bold", 16)  # Aumentado de 14 a 16
+        text_width = c.stringWidth(guide_number, "Helvetica-Bold", 16)
+        right_center_x = right_x + (right_width - text_width) / 2
+        c.drawString(right_center_x, right_current_y, guide_number)
+        right_current_y -= 10 * mm  # Aumentado de 8mm a 10mm
+        
+        # Variable para almacenar la posición más baja del contenido
+        bottom_y = None
+        
+        # Generar código de barras Code128
         try:
-            # Crear código de barras Code128 usando python-barcode
             barcode_class = barcode.get_barcode_class('code128')
             barcode_instance = barcode_class(guide_number, writer=ImageWriter())
             
-            # Generar imagen del código de barras con mejor proporción
+            # Generar imagen del código de barras (optimizado para mejor uso del espacio)
             barcode_buffer = BytesIO()
             barcode_instance.write(barcode_buffer, options={
-                'module_width': 0.35,  # Ancho de las barras (más fino)
-                'module_height': 20.0,  # Altura de las barras (más alto)
-                'quiet_zone': 2.5,  # Zona silenciosa alrededor
-                'font_size': 12,  # Tamaño de fuente para el texto
-                'text_distance': 4.0,  # Distancia del texto al código
+                'module_width': 0.35,  # Ancho de las barras (ligeramente más ancho)
+                'module_height': 18.0,  # Altura de las barras (más alto para mejor legibilidad)
+                'quiet_zone': 2.0,
+                'font_size': 9,  # Tamaño de fuente
+                'text_distance': 2.5,
             })
             barcode_buffer.seek(0)
             
-            # Cargar la imagen del código de barras
+            # Cargar la imagen
             barcode_image = Image.open(barcode_buffer)
-            
-            # Convertir a RGB si es necesario
             if barcode_image.mode != 'RGB':
                 barcode_image = barcode_image.convert('RGB')
             
-            # Guardar en un nuevo buffer para ReportLab
+            # Guardar en buffer para ReportLab
             img_buffer = BytesIO()
             barcode_image.save(img_buffer, format='PNG')
             img_buffer.seek(0)
             
-            # Calcular dimensiones para el código de barras en el PDF
-            # Ancho máximo más amplio para mejor proporción
-            max_width = 100 * mm
+            # Calcular dimensiones (ajustado para aprovechar mejor el espacio)
+            max_width = right_width * 0.9  # Usar 90% del ancho disponible
             img_width, img_height = barcode_image.size
             aspect_ratio = img_height / img_width
-            pdf_width = min(max_width, img_width * 0.264583)  # Convertir pixels a mm
+            pdf_width = min(max_width, img_width * 0.264583)
             pdf_height = pdf_width * aspect_ratio
             
-            # Centrar el código de barras
-            barcode_x = margin_left + (content_width - pdf_width) / 2
+            # Centrar el código de barras en el lado derecho
+            barcode_x = right_x + (right_width - pdf_width) / 2
+            barcode_y = right_current_y - pdf_height
             
-            # Dibujar código de barras en el canvas
+            # Dibujar código de barras
             img_reader = ImageReader(img_buffer)
             c.drawImage(
                 img_reader,
                 barcode_x,
-                y_position - pdf_height,
+                barcode_y,
                 width=pdf_width,
                 height=pdf_height,
                 preserveAspectRatio=True
             )
             
-            # El número de guía ya está incluido en el código de barras (humanReadable)
-            # Solo ajustar posición para el siguiente elemento
-            y_position -= (pdf_height + 12 * mm)
+            # El número de guía ya está incluido en el código de barras, no se repite
+            bottom_y = barcode_y - padding  # Espacio debajo del código de barras
             
         except Exception as e:
             # Si falla el código de barras, mostrar solo el número
@@ -267,34 +314,23 @@ class PackageLabelsGenerator:
             logger.warning(f"Error al generar código de barras: {str(e)}")
             logger.exception(e)
             # Mostrar número de guía como texto
-            c.setFont("Helvetica-Bold", 16)
-            text_width = c.stringWidth(guide_number, "Helvetica-Bold", 16)
-            x_center = margin_left + (content_width - text_width) / 2
-            c.drawString(x_center, y_position, guide_number)
-            y_position -= 15 * mm
+            c.setFont("Helvetica-Bold", 10)
+            text_width = c.stringWidth(guide_number, "Helvetica-Bold", 10)
+            right_center_x = right_x + (right_width - text_width) / 2
+            c.drawString(right_center_x, right_current_y, guide_number)
+            
+            bottom_y = right_current_y - padding
         
-        # ===== CIUDAD - ECUADOR - PROVINCIA =====
-        city_province = f"{package.city} - Ecuador - {package.province}"
-        c.setFont("Helvetica-Bold", 13)
-        text_width = c.stringWidth(city_province, "Helvetica-Bold", 13)
-        x_center = margin_left + (content_width - text_width) / 2
-        c.drawString(x_center, y_position, city_province)
-        y_position -= 15 * mm
+        # Calcular la altura real del contenido
+        # Desde el título hasta el final del contenido
+        top_y = title_y + 3 * mm  # Pequeño espacio arriba del título
+        actual_height = top_y - bottom_y
+        actual_y = bottom_y
         
-        # ===== NOMBRE DEL DESTINATARIO =====
-        recipient_name = package.name.upper() if package.name else "SIN NOMBRE"
-        c.setFont("Helvetica-Bold", 15)
-        text_width = c.stringWidth(recipient_name, "Helvetica-Bold", 15)
-        x_center = margin_left + (content_width - text_width) / 2
-        c.drawString(x_center, y_position, recipient_name)
-        y_position -= 12 * mm
-        
-        # ===== NÚMERO DE TELÉFONO =====
-        phone = package.phone_number if package.phone_number else "-"
-        c.setFont("Helvetica", 13)
-        text_width = c.stringWidth(phone, "Helvetica", 13)
-        x_center = margin_left + (content_width - text_width) / 2
-        c.drawString(x_center, y_position, phone)
+        # Dibujar borde de la etiqueta ajustado al contenido (después de todos los elementos)
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.5)
+        c.rect(x, actual_y, label_width, actual_height)
         
         # Finalizar página
         c.showPage()

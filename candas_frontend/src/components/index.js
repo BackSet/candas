@@ -17,7 +17,7 @@ export { LoadingSpinner, EmptyState, ConfirmDialog } from './feedback'
 export { LineChartComponent, BarChartComponent, PieChartComponent, AreaChartComponent } from './charts'
 
 // Domain Components
-export { PackageSelector, PackageList, PackageListItem, PackageDisplayConfigModal, ColumnMapper, ImportHistory, PullSelector, PullsListBuilder, DocumentButtons, ExportButton, QRCodeDisplay, SearchBar, StatCard } from './domain'
+export { PackageSelector, PackageList, PackageListItem, PackageDisplayConfigModal, ColumnMapper, ImportHistory, PullSelector, PullsListBuilder, BatchSelector, DocumentButtons, ExportButton, MessageModal, QRCodeDisplay, SearchBar, StatCard } from './domain'
 
 // Theme Components
 export { ThemeToggle } from './theme'

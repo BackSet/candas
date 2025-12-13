@@ -58,6 +58,7 @@ const PackageDisplayConfigModal = ({
     { label: 'Básico', value: '{guide_number} - {name}' },
     { label: 'Con estado', value: '{guide_number} - {name} - {status}' },
     { label: 'Solo guía y ciudad', value: '{guide_number} ({city})' },
+    { label: 'Guía y Fecha', value: '📅 {created_at} - {guide_number}' },
   ]
 
   return (

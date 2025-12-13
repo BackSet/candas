@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import packagesService from '../../services/packagesService'
-import { LoadingSpinner, EmptyState, ConfirmDialog, Card, Button, Badge, DataTable, StatCard, TableActions, DocumentButtons } from '../../components'
+import { LoadingSpinner, EmptyState, ConfirmDialog, Card, Button, Badge, DataTable, StatCard, TableActions, DocumentButtons, MessageModal } from '../../components'
 import { getEntityColor } from '../../utils/entityColors'
 
 const IndividualPackagesList = () => {
@@ -17,6 +17,12 @@ const IndividualPackagesList = () => {
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, package: null })
   const [deleting, setDeleting] = useState(false)
   const [generatingDocs, setGeneratingDocs] = useState({})
+  const [messageModal, setMessageModal] = useState({
+    show: false,
+    message: '',
+    details: null,
+    entityId: null,
+  })
 
   const STATUS_CHOICES = [
     { value: '', label: 'Todos los Estados' },
@@ -134,6 +140,25 @@ const IndividualPackagesList = () => {
       toast.error('Error al generar la etiqueta')
     } finally {
       setGeneratingDocs(prev => ({ ...prev, [`label_${packageId}`]: false }))
+    }
+  }
+
+  const handleGenerateMessage = async (packageId) => {
+    try {
+      const data = await packagesService.generateNotificationMessage(packageId)
+      setMessageModal({
+        show: true,
+        message: data.message,
+        entityId: packageId,
+        details: {
+          agency_name: data.agency_name,
+          guide_number: data.guide_number,
+          total_packages: data.total_packages,
+        },
+      })
+    } catch (error) {
+      console.error('Error al generar mensaje:', error)
+      toast.error(error.response?.data?.error || 'Error al generar el mensaje de notificación')
     }
   }
 
@@ -296,6 +321,18 @@ const IndividualPackagesList = () => {
             cell: (pkg) => pkg.agency_guide_number || <span className="text-gray-400 dark:text-gray-500">-</span>
           },
           { 
+            key: 'created_at', 
+            header: 'Fecha',
+            cell: (pkg) => (
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <i className="fas fa-calendar text-sm"></i>
+                <span className="text-sm">
+                  {pkg.created_at ? new Date(pkg.created_at).toLocaleDateString('es-ES') : '-'}
+                </span>
+              </div>
+            )
+          },
+          { 
             key: 'documents', 
             header: 'Documentos',
             cell: (pkg) => (
@@ -304,6 +341,8 @@ const IndividualPackagesList = () => {
                 onPDF={handleDownloadManifestPDF}
                 onExcel={handleDownloadManifestExcel}
                 onLabel={handleDownloadLabel}
+                onMessage={handleGenerateMessage}
+                showMessage={true}
               />
             )
           },
@@ -352,6 +391,15 @@ const IndividualPackagesList = () => {
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ show: false, package: null })}
         variant="danger"
+      />
+
+      <MessageModal
+        show={messageModal.show}
+        onClose={() => setMessageModal({ show: false, message: '', details: null, entityId: null })}
+        message={messageModal.message}
+        details={messageModal.details}
+        entityId={messageModal.entityId}
+        type="package"
       />
     </div>
   )

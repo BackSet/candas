@@ -128,6 +128,25 @@ const batchesService = {
     return response
   },
   
+  // Exportar lote a Excel con formato personalizado
+  exportExcelCustomFormat: async (id) => {
+    const response = await api.get(`/api/v1/batches/${id}/export_excel_custom_format/`, {
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    link.setAttribute('download', `manifiesto_lote_${timestamp}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    
+    return response
+  },
+  
   // Generar etiquetas de sacas del lote
   generateLabels: async (id) => {
     const response = await api.get(`/api/v1/batches/${id}/generate_labels/`, {
@@ -152,6 +171,12 @@ const batchesService = {
     const response = await api.post(`/api/v1/batches/${id}/change-packages-status/`, {
       status
     })
+    return response.data
+  },
+
+  // Generar mensaje de notificación
+  generateNotificationMessage: async (id) => {
+    const response = await api.get(`/api/v1/batches/${id}/generate_notification_message/`)
     return response.data
   },
 }

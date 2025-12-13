@@ -47,6 +47,15 @@ class Package(models.Model):
         null=True,
         blank=True
     )
+    package_import = models.ForeignKey(
+        'PackageImport',
+        on_delete=models.SET_NULL,
+        related_name='imported_packages',
+        null=True,
+        blank=True,
+        verbose_name='Importación',
+        help_text='Importación desde la cual se creó este paquete'
+    )
     nro_master = models.CharField(
         max_length=50,
         blank=True,

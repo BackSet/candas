@@ -10,6 +10,18 @@ const Button = (props) => {
   const { flowbiteProps, loading, icon, iconPosition } = mapButtonProps(props)
   const { children, ...restFlowbiteProps } = flowbiteProps
 
+  // Helper para renderizar el icono correctamente
+  const renderIcon = () => {
+    if (!icon) return null
+    
+    // Si el icono es una cadena, convertirla en un elemento <i>
+    if (typeof icon === 'string') {
+      return <i className={icon} aria-hidden="true" />
+    }
+    // Si ya es un elemento React, devolverlo tal cual
+    return icon
+  }
+
   return (
     <FlowbiteButton {...restFlowbiteProps} className={`min-w-fit w-auto px-4 py-2 ${restFlowbiteProps.className || ''}`.trim()}>
       {loading && (
@@ -35,11 +47,11 @@ const Button = (props) => {
         </svg>
       )}
       {!loading && icon && iconPosition === 'left' && (
-        <span className="mr-2" aria-hidden="true">{icon}</span>
+        <span className="mr-2" aria-hidden="true">{renderIcon()}</span>
       )}
       <span className={loading ? 'opacity-0' : ''}>{children}</span>
       {!loading && icon && iconPosition === 'right' && (
-        <span className="ml-2" aria-hidden="true">{icon}</span>
+        <span className="ml-2" aria-hidden="true">{renderIcon()}</span>
       )}
     </FlowbiteButton>
   )

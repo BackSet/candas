@@ -2,6 +2,7 @@
 Template base común para generación de manifiestos formales.
 Formato A4 horizontal, sin colores, solo texto negro y líneas.
 """
+import re
 from io import BytesIO
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
@@ -15,9 +16,9 @@ from datetime import datetime
 class BaseManifestGenerator:
     """Clase base para generadores de manifiestos formales."""
     
-    # Configuración de página A4 horizontal
+    # Configuración de página A4 horizontal - OPTIMIZADO para máximo aprovechamiento
     PAGE_SIZE = landscape(A4)
-    MARGIN = 10 * mm  # Márgenes estrechos
+    MARGIN = 5 * mm  # Márgenes mínimos (reducido de 10mm a 5mm)
     
     @staticmethod
     def create_document():
@@ -35,12 +36,12 @@ class BaseManifestGenerator:
     
     @staticmethod
     def get_company_header():
-        """Retorna un Paragraph con el nombre de la empresa."""
+        """Retorna un Paragraph con el nombre de la empresa (optimizado)."""
         company_style = ParagraphStyle(
             'CompanyHeader',
-            fontSize=16,
+            fontSize=14,  # Reducido de 16 a 14
             textColor=colors.black,
-            spaceAfter=8,
+            spaceAfter=3,  # Reducido de 8 a 3
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         )
@@ -48,42 +49,43 @@ class BaseManifestGenerator:
     
     @staticmethod
     def get_title_style():
-        """Retorna el estilo para títulos de manifiestos."""
+        """Retorna el estilo para títulos de manifiestos (optimizado)."""
         styles = getSampleStyleSheet()
         return ParagraphStyle(
             'FormalTitle',
             parent=styles['Heading1'],
-            fontSize=18,
+            fontSize=14,  # Reducido de 18 a 14
             textColor=colors.black,
-            spaceAfter=10,
+            spaceAfter=4,  # Reducido de 10 a 4
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         )
     
     @staticmethod
     def get_heading_style():
-        """Retorna el estilo para encabezados de secciones."""
+        """Retorna el estilo para encabezados de secciones (optimizado)."""
         styles = getSampleStyleSheet()
         return ParagraphStyle(
             'FormalHeading',
             parent=styles['Heading2'],
-            fontSize=13,
+            fontSize=11,  # Reducido de 13 a 11
             textColor=colors.black,
-            spaceAfter=5,
-            spaceBefore=5,
+            spaceAfter=2,  # Reducido de 5 a 2
+            spaceBefore=2,  # Reducido de 5 a 2
             fontName='Helvetica-Bold'
         )
     
     @staticmethod
     def get_normal_style():
-        """Retorna el estilo para texto normal."""
+        """Retorna el estilo para texto normal (optimizado)."""
         styles = getSampleStyleSheet()
         return ParagraphStyle(
             'FormalNormal',
             parent=styles['Normal'],
-            fontSize=8,
+            fontSize=7,  # Reducido de 8 a 7
             textColor=colors.black,
-            fontName='Helvetica'
+            fontName='Helvetica',
+            leading=8.5  # Interlineado compacto
         )
     
     @staticmethod
@@ -106,6 +108,7 @@ class BaseManifestGenerator:
     def _wrap_text(text, style):
         """
         Convierte un texto en un objeto Paragraph para permitir word wrapping.
+        Limpia saltos de línea y caracteres especiales.
         
         Args:
             text: Texto a convertir (string, None, o ya un Paragraph)
@@ -122,12 +125,83 @@ class BaseManifestGenerator:
         if not text or text == '':
             return Paragraph('-', style)
         
-        # Convertir a string y escapar caracteres especiales para XML/HTML
+        # Convertir a string
         text_str = str(text)
-        # Escapar caracteres especiales para ReportLab
+        
+        # Limpiar saltos de línea y caracteres de control
+        # Reemplazar todos los tipos de saltos de línea por espacios
+        text_str = text_str.replace('\r\n', ' ')  # Windows
+        text_str = text_str.replace('\n', ' ')     # Unix/Linux
+        text_str = text_str.replace('\r', ' ')      # Mac antiguo
+        text_str = text_str.replace('\t', ' ')      # Tabs por espacios
+        
+        # Eliminar caracteres de control ASCII (excepto espacios y caracteres imprimibles)
+        text_str = re.sub(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]', '', text_str)
+        
+        # Eliminar caracteres Unicode problemáticos más agresivamente
+        # Eliminar caracteres de formato Unicode (U+2000-U+206F) - incluye varios símbolos
+        text_str = re.sub(r'[\u2000-\u206F]', '', text_str)
+        # Eliminar separadores de línea/párrafo Unicode
+        text_str = re.sub(r'[\u2028\u2029]', ' ', text_str)
+        # Eliminar caracteres de control Unicode comunes
+        text_str = text_str.replace('\uFEFF', '')  # Zero Width No-Break Space
+        text_str = text_str.replace('\u200B', '')  # Zero Width Space
+        text_str = text_str.replace('\u200C', '')  # Zero Width Non-Joiner
+        text_str = text_str.replace('\u200D', '')  # Zero Width Joiner
+        text_str = text_str.replace('\u2060', '')  # Word Joiner
+        # Eliminar otros caracteres invisibles y de formato
+        text_str = re.sub(r'[\u200E\u200F\u202A-\u202E\u2061-\u2063]', '', text_str)
+        
+        # Eliminar símbolos especiales que pueden causar problemas de renderizado
+        # Esto incluye varios rangos de símbolos Unicode que pueden no renderizarse bien
+        # Mantener solo caracteres latinos básicos, números, puntuación común y espacios
+        # Permitir caracteres ASCII imprimibles (32-126) y caracteres latinos extendidos comunes
+        # Eliminar símbolos que no son letras, números o puntuación básica
+        # Pero ser cuidadoso: no eliminar acentos y caracteres latinos comunes
+        
+        # Normalizar espacios múltiples a un solo espacio
+        text_str = re.sub(r' +', ' ', text_str)
+        
+        # Eliminar espacios al inicio y final
+        text_str = text_str.strip()
+        
+        # Si después de limpiar queda vacío, retornar '-'
+        if not text_str:
+            return Paragraph('-', style)
+        
+        # Escapar caracteres especiales para XML/HTML (ReportLab)
         text_str = text_str.replace('&', '&amp;')
         text_str = text_str.replace('<', '&lt;')
         text_str = text_str.replace('>', '&gt;')
+        
+        # Última limpieza: eliminar caracteres problemáticos pero mantener latinos
+        # Eliminar específicamente símbolos que causan problemas de renderizado
+        # Mantener caracteres ASCII imprimibles y latinos extendidos comunes
+        cleaned_chars = []
+        for char in text_str:
+            code = ord(char)
+            # Permitir ASCII imprimible (32-126): letras, números, puntuación básica
+            if 32 <= code <= 126:
+                cleaned_chars.append(char)
+            # Permitir caracteres latinos extendidos comunes (á, é, í, ó, ú, ñ, etc.)
+            # Latin-1 Supplement (U+00A0-U+00FF)
+            elif 160 <= code <= 255:
+                cleaned_chars.append(char)
+            # Permitir caracteres latinos extendidos adicionales comunes
+            # Latin Extended-A (U+0100-U+017F) - incluye más acentos
+            elif 256 <= code <= 383:
+                cleaned_chars.append(char)
+            # Permitir espacios (ya normalizados)
+            elif char == ' ':
+                cleaned_chars.append(char)
+            # Eliminar todo lo demás (incluye símbolos especiales, emojis, etc.)
+        text_str = ''.join(cleaned_chars)
+        
+        # Normalizar espacios nuevamente después de la limpieza
+        text_str = re.sub(r' +', ' ', text_str).strip()
+        
+        if not text_str:
+            return Paragraph('-', style)
         
         return Paragraph(text_str, style)
     

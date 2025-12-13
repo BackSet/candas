@@ -36,7 +36,9 @@ export const transportAgenciesService = {
 
   // Obtener solo agencias activas
   getActive: async () => {
-    const response = await api.get('/api/v1/transport-agencies/?active_only=true')
+    const response = await api.get('/api/v1/transport-agencies/', {
+      params: { active: 'true' }
+    })
     return response.data
   },
 

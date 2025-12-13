@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import batchesService from '../../services/batchesService'
 import transportAgenciesService from '../../services/transportAgenciesService'
-import { Card, Button, DataTable, ExportButton, StatCard, TableActions, DocumentButtons } from '../../components'
+import { Card, Button, DataTable, ExportButton, StatCard, TableActions, DocumentButtons, MessageModal } from '../../components'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
@@ -14,6 +14,12 @@ const BatchesList = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [agencyFilter, setAgencyFilter] = useState('')
   const [transportAgencies, setTransportAgencies] = useState([])
+  const [messageModal, setMessageModal] = useState({
+    show: false,
+    message: '',
+    details: null,
+    entityId: null,
+  })
 
   // Función de fetch estabilizada con useCallback
   const fetchFunction = useCallback(
@@ -117,6 +123,43 @@ const BatchesList = () => {
     } catch (error) {
       toast.error('Error al generar las etiquetas')
       logger.error('Error al descargar etiquetas:', error)
+    }
+  }
+
+  const handleGenerateMessage = async (batchId) => {
+    try {
+      const data = await batchesService.generateNotificationMessage(batchId)
+      // Obtener información detallada del batch para las sacas
+      const batchDetail = await batchesService.get(batchId)
+      const pullsList = batchDetail.pulls_list || []
+      const totalPackages = data.total_packages ?? 0
+      
+      // Ordenar las sacas por fecha de creación (más antiguas primero) para numeración correcta
+      const sortedPullsList = [...pullsList].sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+        return dateA - dateB // Orden ascendente: más antiguas primero
+      })
+      
+      setMessageModal({
+        show: true,
+        message: data.message,
+        entityId: batchId,
+        details: {
+          agency_name: data.agency_name,
+          guide_number: data.guide_number,
+          total_packages: totalPackages,
+          pulls_count: sortedPullsList.length,
+          pulls_list: sortedPullsList.map((pull, index) => ({
+            number: index + 1,
+            total: sortedPullsList.length,
+            packages_count: pull.packages_count || 0,
+          })),
+        },
+      })
+    } catch (error) {
+      console.error('Error al generar mensaje:', error)
+      toast.error(error.response?.data?.error || 'Error al generar el mensaje de notificación')
     }
   }
 
@@ -298,6 +341,8 @@ const BatchesList = () => {
                 onPDF={handleDownloadManifestPDF}
                 onExcel={handleDownloadManifestExcel}
                 onLabel={handleDownloadLabels}
+                onMessage={handleGenerateMessage}
+                showMessage={true}
               />
             )
           },
@@ -340,6 +385,15 @@ const BatchesList = () => {
         emptyDescription={searchTerm || agencyFilter ? 'Intenta ajustar los filtros' : 'Crea tu primer lote para agrupar sacas'}
         emptyActionLabel="Crear Lote"
         onEmptyAction={() => navigate('/logistica/batches/crear')}
+      />
+
+      <MessageModal
+        show={messageModal.show}
+        onClose={() => setMessageModal({ show: false, message: '', details: null, entityId: null })}
+        message={messageModal.message}
+        details={messageModal.details}
+        entityId={messageModal.entityId}
+        type="batch"
       />
     </div>
   )

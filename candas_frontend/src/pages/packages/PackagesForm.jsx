@@ -6,7 +6,7 @@ import packagesService from '../../services/packagesService'
 import pullsService from '../../services/pullsService'
 import transportAgenciesService from '../../services/transportAgenciesService'
 import { FormField, LoadingSpinner, Card, Button, Badge } from '../../components'
-import { PackageListItem, PackageDisplayConfigModal } from '../../components/domain/packages'
+import { PackageListItem, PackageDisplayConfigModal, DeliveryAgencyRecommender } from '../../components/domain/packages'
 import usePackageDisplayConfig from '../../hooks/usePackageDisplayConfig'
 import logger from '../../utils/logger'
 import { getSelectStyles, getSelectTheme } from '../../utils/selectStyles'
@@ -105,11 +105,18 @@ const PackagesForm = () => {
         transportAgenciesService.getActive()
       ])
       setPulls(pullsData.results ?? pullsData ?? [])
-      setAgencies(agenciesData.results ?? agenciesData ?? [])
+      // Asegurar que las agencias siempre sean un array
+      const agenciesList = agenciesData?.results ?? agenciesData ?? []
+      setAgencies(Array.isArray(agenciesList) ? agenciesList : [])
+      logger.log('Agencias cargadas:', agenciesList.length)
       await loadAvailableParents()
     } catch (error) {
       logger.error('Error cargando datos:', error)
+      logger.error('Error response:', error.response?.data)
       toast.error('Error al cargar datos del formulario')
+      // Asegurar que los arrays estén inicializados incluso si hay error
+      setAgencies([])
+      setPulls([])
     } finally {
       setLoadingData(false)
     }
@@ -570,6 +577,19 @@ const PackagesForm = () => {
                 placeholder="Ej: PICHINCHA"
               />
             </div>
+
+            {/* Recomendaciones de Agencia de Reparto */}
+            <DeliveryAgencyRecommender
+              city={formData.city}
+              province={formData.province}
+              onSelect={(agencyId) => {
+                setFormData({
+                  ...formData,
+                  delivery_agency: agencyId
+                })
+              }}
+              currentAgency={formData.delivery_agency}
+            />
 
             <FormField
               label="Teléfono"

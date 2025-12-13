@@ -2,6 +2,11 @@ import { Link } from 'react-router-dom'
 import { Card } from '../components'
 
 const Dashboard = () => {
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/e032b260-3761-424c-8962-a2f280305add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.jsx:4',message:'Dashboard RENDER',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  }
+  // #endregion
   const stats = [
     {
       title: 'Total Paquetes',

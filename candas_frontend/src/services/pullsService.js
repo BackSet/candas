@@ -135,6 +135,12 @@ export const pullsService = {
     })
     return response.data
   },
+
+  // Generar mensaje de notificación
+  generateNotificationMessage: async (id) => {
+    const response = await api.get(`/api/v1/pulls/${id}/generate_notification_message/`)
+    return response.data
+  },
 }
 
 export default pullsService

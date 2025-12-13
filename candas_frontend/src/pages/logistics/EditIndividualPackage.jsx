@@ -35,13 +35,17 @@ const EditIndividualPackage = () => {
   const loadData = async () => {
     try {
       setInitialLoading(true)
-      const [packageResponse, agencies] = await Promise.all([
+      const [packageResponse, agenciesResponse] = await Promise.all([
         packagesService.get(id),
         catalogService.getTransportAgencies()
       ])
       
+      // Asegurar que las agencias siempre sean un array
+      const agencies = agenciesResponse?.results ?? agenciesResponse ?? []
+      
       setPackageData(packageResponse)
-      setTransportAgencies(agencies)
+      setTransportAgencies(Array.isArray(agencies) ? agencies : [])
+      console.log('Agencias cargadas:', agencies.length)
       setFormData({
         status: packageResponse.status || '',
         transport_agency: packageResponse.transport_agency || '',
@@ -49,7 +53,9 @@ const EditIndividualPackage = () => {
       })
     } catch (error) {
       toast.error('Error al cargar el paquete')
-      console.error(error)
+      console.error('Error cargando datos:', error)
+      console.error('Error response:', error.response?.data)
+      setTransportAgencies([])
       navigate('/logistica/individuales')
     } finally {
       setInitialLoading(false)

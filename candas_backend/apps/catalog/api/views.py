@@ -243,7 +243,7 @@ class DeliveryAgencyViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filtrar por ubicación o activas si se solicita"""
-        queryset = DeliveryAgency.objects.all()
+        queryset = DeliveryAgency.objects.select_related('location').all()
         
         location_id = self.request.query_params.get('location', None)
         if location_id:
@@ -254,4 +254,63 @@ class DeliveryAgencyViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(active=True)
         
         return queryset
+    
+    @action(detail=False, methods=['get'], url_path='recommend')
+    def recommend(self, request):
+        """
+        Obtiene recomendaciones de agencias de reparto para una ciudad.
+        
+        GET /api/v1/delivery-agencies/recommend/?city=QUITO&province=PICHINCHA
+        
+        Returns:
+            Lista de recomendaciones ordenadas por score
+        """
+        from apps.catalog.services.delivery_agency_recommender import DeliveryAgencyRecommender
+        
+        city = request.query_params.get('city', '')
+        province = request.query_params.get('province', None)
+        
+        if not city:
+            return Response(
+                {'error': 'El parámetro "city" es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        recommendations = DeliveryAgencyRecommender.get_all_recommendations_with_details(
+            city, province
+        )
+        
+        return Response(recommendations)
+    
+    @action(detail=False, methods=['get'], url_path='recommend-best')
+    def recommend_best(self, request):
+        """
+        Obtiene la mejor recomendación (una sola agencia).
+        
+        GET /api/v1/delivery-agencies/recommend-best/?city=QUITO
+        """
+        from apps.catalog.services.delivery_agency_recommender import DeliveryAgencyRecommender
+        
+        city = request.query_params.get('city', '')
+        province = request.query_params.get('province', None)
+        
+        if not city:
+            return Response(
+                {'error': 'El parámetro "city" es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        agency = DeliveryAgencyRecommender.get_best_recommendation(city, province)
+        
+        if agency:
+            serializer = DeliveryAgencySerializer(agency)
+            return Response({
+                'recommended': serializer.data,
+                'city': DeliveryAgencyRecommender.normalize_city_name(city)
+            })
+        
+        return Response(
+            {'error': 'No se encontraron agencias para esta ciudad'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 

@@ -30,9 +30,13 @@ const BatchFormWizard = () => {
   const loadTransportAgencies = async () => {
     try {
       const data = await transportAgenciesService.getActive()
-      setTransportAgencies(data.results || data)
+      // Asegurar que siempre sea un array
+      const agenciesList = data?.results ?? data ?? []
+      setTransportAgencies(Array.isArray(agenciesList) ? agenciesList : [])
+      console.log('Agencias cargadas:', agenciesList.length)
     } catch (error) {
       console.error('Error cargando agencias:', error)
+      console.error('Error response:', error.response?.data)
     }
   }
 

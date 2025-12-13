@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import dispatchesService from '../../services/dispatchesService'
-import { Card, Button, FormField, PullSelector, PackageSelector } from '../../components'
+import pullsService from '../../services/pullsService'
+import batchesService from '../../services/batchesService'
+import { Card, Button, FormField, PullSelector, BatchSelector, PackageSelector } from '../../components'
 
 const DispatchCreate = () => {
   const navigate = useNavigate()
@@ -11,9 +13,12 @@ const DispatchCreate = () => {
     status: 'PLANIFICADO',
     notes: '',
   })
+  const [selectedBatches, setSelectedBatches] = useState([])
   const [selectedPulls, setSelectedPulls] = useState([])
   const [selectedIndividualPackages, setSelectedIndividualPackages] = useState([])
   const [loading, setLoading] = useState(false)
+  const [pullsDetails, setPullsDetails] = useState({}) // Almacenar detalles de las sacas seleccionadas
+  const [batchesDetails, setBatchesDetails] = useState({}) // Almacenar detalles de los lotes seleccionados
 
   const STATUS_CHOICES = [
     { value: 'PLANIFICADO', label: 'Planificado' },
@@ -21,6 +26,170 @@ const DispatchCreate = () => {
     { value: 'COMPLETADO', label: 'Completado' },
     { value: 'CANCELADO', label: 'Cancelado' },
   ]
+
+  // Cargar detalles de las sacas seleccionadas para obtener sus paquetes
+  useEffect(() => {
+    const loadPullsDetails = async () => {
+      const newDetails = {}
+      const pullsToLoad = selectedPulls.filter(pull => !pullsDetails[pull.id])
+      
+      if (pullsToLoad.length === 0) return
+      
+      try {
+        await Promise.all(
+          pullsToLoad.map(async (pull) => {
+            try {
+              const details = await pullsService.get(pull.id)
+              newDetails[pull.id] = details
+            } catch (error) {
+              console.error(`Error al cargar detalles de saca ${pull.id}:`, error)
+            }
+          })
+        )
+        
+        if (Object.keys(newDetails).length > 0) {
+          setPullsDetails(prev => ({ ...prev, ...newDetails }))
+        }
+      } catch (error) {
+        console.error('Error al cargar detalles de sacas:', error)
+      }
+    }
+    
+    loadPullsDetails()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPulls.map(p => p.id).join(',')])
+
+  // Limpiar detalles de sacas que ya no están seleccionadas
+  useEffect(() => {
+    const selectedIds = new Set(selectedPulls.map(p => p.id))
+    setPullsDetails(prev => {
+      const filtered = {}
+      Object.keys(prev).forEach(id => {
+        if (selectedIds.has(id)) {
+          filtered[id] = prev[id]
+        }
+      })
+      return filtered
+    })
+  }, [selectedPulls])
+
+  // Cargar detalles de los lotes seleccionados para obtener sus sacas
+  useEffect(() => {
+    const loadBatchesDetails = async () => {
+      const newDetails = {}
+      const batchesToLoad = selectedBatches.filter(batch => !batchesDetails[batch.id])
+      
+      if (batchesToLoad.length === 0) return
+      
+      try {
+        await Promise.all(
+          batchesToLoad.map(async (batch) => {
+            try {
+              const details = await batchesService.get(batch.id)
+              console.log('Detalles de lote cargados:', batch.id, 'pulls_list:', details.pulls_list)
+              newDetails[batch.id] = details
+            } catch (error) {
+              console.error(`Error al cargar detalles de lote ${batch.id}:`, error)
+              console.error('Error response:', error.response?.data)
+            }
+          })
+        )
+        
+        if (Object.keys(newDetails).length > 0) {
+          console.log('Actualizando batchesDetails con:', Object.keys(newDetails).length, 'lotes')
+          setBatchesDetails(prev => ({ ...prev, ...newDetails }))
+        }
+      } catch (error) {
+        console.error('Error al cargar detalles de lotes:', error)
+      }
+    }
+    
+    loadBatchesDetails()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBatches.map(b => b.id).join(',')])
+
+  // Limpiar detalles de lotes que ya no están seleccionados
+  useEffect(() => {
+    const selectedIds = new Set(selectedBatches.map(b => b.id))
+    setBatchesDetails(prev => {
+      const filtered = {}
+      Object.keys(prev).forEach(id => {
+        if (selectedIds.has(id)) {
+          filtered[id] = prev[id]
+        }
+      })
+      return filtered
+    })
+  }, [selectedBatches])
+
+  // Agregar sacas de lotes seleccionados automáticamente
+  useEffect(() => {
+    const pullsFromBatches = []
+    const pullIds = new Set(selectedPulls.map(p => p.id))
+    
+    Object.values(batchesDetails).forEach(batchDetail => {
+      // El serializer devuelve 'pulls_list' no 'pulls'
+      const pulls = batchDetail.pulls_list || batchDetail.pulls
+      console.log('Batch detail:', batchDetail.id, 'pulls_list:', pulls)
+      if (pulls && Array.isArray(pulls)) {
+        pulls.forEach(pull => {
+          if (!pullIds.has(pull.id)) {
+            pullsFromBatches.push(pull)
+            pullIds.add(pull.id)
+          }
+        })
+      }
+    })
+    
+    if (pullsFromBatches.length > 0) {
+      console.log('Agregando sacas automáticamente:', pullsFromBatches.length)
+      setSelectedPulls(prev => [...prev, ...pullsFromBatches])
+    }
+  }, [batchesDetails, selectedPulls])
+
+  // Obtener IDs de sacas que están en los lotes seleccionados
+  const pullsInSelectedBatches = useMemo(() => {
+    const pullIds = new Set()
+    Object.values(batchesDetails).forEach(batchDetail => {
+      // El serializer devuelve 'pulls_list' no 'pulls'
+      const pulls = batchDetail.pulls_list || batchDetail.pulls
+      if (pulls && Array.isArray(pulls)) {
+        pulls.forEach(pull => {
+          pullIds.add(pull.id)
+        })
+      }
+    })
+    return Array.from(pullIds)
+  }, [batchesDetails])
+
+  // Obtener IDs de paquetes que están en las sacas seleccionadas y en lotes
+  const packagesInSelectedPulls = useMemo(() => {
+    const packageIds = new Set()
+    Object.values(pullsDetails).forEach(pullDetail => {
+      if (pullDetail.packages && Array.isArray(pullDetail.packages)) {
+        pullDetail.packages.forEach(pkg => {
+          packageIds.add(pkg.id)
+        })
+      }
+    })
+    
+    // También incluir paquetes de sacas que están en lotes seleccionados
+    Object.values(batchesDetails).forEach(batchDetail => {
+      // El serializer devuelve 'pulls_list' no 'pulls'
+      const pulls = batchDetail.pulls_list || batchDetail.pulls
+      if (pulls && Array.isArray(pulls)) {
+        pulls.forEach(pull => {
+          if (pull.packages && Array.isArray(pull.packages)) {
+            pull.packages.forEach(pkg => {
+              packageIds.add(pkg.id)
+            })
+          }
+        })
+      }
+    })
+    
+    return Array.from(packageIds)
+  }, [pullsDetails, batchesDetails])
 
   const handleInputChange = (e) => {
     setFormData({
@@ -37,14 +206,29 @@ const DispatchCreate = () => {
       return
     }
 
-    if (selectedPulls.length === 0 && selectedIndividualPackages.length === 0) {
-      toast.error('Debes agregar al menos una saca o un paquete individual')
+    if (selectedBatches.length === 0 && selectedPulls.length === 0 && selectedIndividualPackages.length === 0) {
+      toast.error('Debes agregar al menos un lote, una saca o un paquete individual')
       return
     }
 
     setLoading(true)
     try {
-      const pullIds = selectedPulls.map((p) => p.id)
+      // Obtener todas las sacas: las seleccionadas directamente + las de los lotes
+      const allPullIds = new Set(selectedPulls.map((p) => p.id))
+      
+      // Agregar sacas de lotes seleccionados
+      Object.values(batchesDetails).forEach(batchDetail => {
+        const pulls = batchDetail.pulls_list || batchDetail.pulls || []
+        if (Array.isArray(pulls)) {
+          pulls.forEach(pull => {
+            if (pull && pull.id) {
+              allPullIds.add(pull.id)
+            }
+          })
+        }
+      })
+      
+      const pullIds = Array.from(allPullIds)
       const packageIds = selectedIndividualPackages.map((p) => p.id)
       
       const data = {
@@ -65,15 +249,22 @@ const DispatchCreate = () => {
   }
 
   const getTotalItems = () => {
-    // Contar paquetes en sacas + paquetes individuales
-    const packagesInPulls = selectedPulls.reduce((sum, pull) => {
+    // Contar paquetes en lotes
+    const packagesInBatches = Object.values(batchesDetails).reduce((sum, batchDetail) => {
+      return sum + (batchDetail.total_packages || 0)
+    }, 0)
+    
+    // Contar paquetes en sacas individuales (que no están en lotes)
+    const pullsNotInBatches = selectedPulls.filter(pull => !pullsInSelectedBatches.includes(pull.id))
+    const packagesInPulls = pullsNotInBatches.reduce((sum, pull) => {
       return sum + (pull.packages_count || pull.packages?.length || 0)
     }, 0)
     
     return {
+      batches: selectedBatches.length,
       pulls: selectedPulls.length,
       individualPackages: selectedIndividualPackages.length,
-      totalPackages: packagesInPulls + selectedIndividualPackages.length,
+      totalPackages: packagesInBatches + packagesInPulls + selectedIndividualPackages.length,
     }
   }
 
@@ -142,9 +333,15 @@ const DispatchCreate = () => {
         </Card>
 
         {/* Resumen */}
-        {(selectedPulls.length > 0 || selectedIndividualPackages.length > 0) && (
+        {(selectedBatches.length > 0 || selectedPulls.length > 0 || selectedIndividualPackages.length > 0) && (
           <Card>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                <p className="text-sm text-orange-600 dark:text-orange-400">Lotes</p>
+                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                  {totals.batches}
+                </p>
+              </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-sm text-blue-600 dark:text-blue-400">Sacas</p>
                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
@@ -167,6 +364,26 @@ const DispatchCreate = () => {
           </Card>
         )}
 
+        {/* Agregar Lotes */}
+        <Card header={
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Agregar Lotes al Despacho
+          </h2>
+        }>
+          <BatchSelector
+            selectedBatches={selectedBatches}
+            onBatchesChange={setSelectedBatches}
+            filterAvailable={false}
+            label="Seleccionar Lotes"
+          />
+          <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <p className="text-sm text-orange-800 dark:text-orange-200">
+              <i className="fas fa-info-circle mr-2"></i>
+              Al seleccionar un lote, todas sus sacas se agregarán automáticamente al despacho.
+            </p>
+          </div>
+        </Card>
+
         {/* Agregar Sacas */}
         <Card header={
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -176,9 +393,16 @@ const DispatchCreate = () => {
           <PullSelector
             selectedPulls={selectedPulls}
             onPullsChange={setSelectedPulls}
-            filterAvailable={false}
-            label="Seleccionar Sacas"
+            filterAvailable={true}
+            label="Seleccionar Sacas Individuales"
+            excludePullIds={pullsInSelectedBatches}
           />
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <i className="fas fa-info-circle mr-2"></i>
+              Solo se muestran sacas individuales (que no tienen asociado ningún lote y no están en otro despacho). Las sacas de lotes seleccionados se agregan automáticamente.
+            </p>
+          </div>
         </Card>
 
         {/* Agregar Paquetes Individuales */}
@@ -194,11 +418,12 @@ const DispatchCreate = () => {
             allowBarcode={true}
             allowDropdown={true}
             label="Seleccionar Paquetes Individuales"
+            excludePackageIds={packagesInSelectedPulls}
           />
           <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
               <i className="fas fa-info-circle mr-2"></i>
-              Los paquetes individuales son aquellos que se envían sin estar agrupados en una saca.
+              Solo se muestran paquetes de envío individual (que no pertenecen a una saca ni a un lote, pero tienen agencia de transporte asignada). Los paquetes que están en sacas o lotes seleccionados se excluyen automáticamente.
             </p>
           </div>
         </Card>

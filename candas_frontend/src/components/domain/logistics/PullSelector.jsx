@@ -13,13 +13,14 @@ const PullSelector = ({
   onPullsChange,
   filterAvailable = true,
   label = 'Agregar Sacas',
+  excludePullIds = [], // IDs de sacas a excluir
 }) => {
   const [availablePulls, setAvailablePulls] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadAvailablePulls()
-  }, [filterAvailable])
+  }, [filterAvailable, JSON.stringify(excludePullIds), JSON.stringify(selectedPulls.map(p => p.id))])
 
   const loadAvailablePulls = async () => {
     try {
@@ -27,7 +28,34 @@ const PullSelector = ({
       const params = filterAvailable ? { available: true } : {}
       const data = await pullsService.list(params)
       
-      const pulls = data.results || data
+      let pulls = data.results || data
+      
+      // Filtrar solo sacas que NO tienen batch asociado (sacas individuales)
+      // El batch puede venir como ID (string) o como objeto, o null/undefined
+      pulls = pulls.filter(pull => {
+        const batchValue = pull.batch
+        // Si es null, undefined, o string vacío, no tiene batch
+        if (!batchValue || batchValue === null || batchValue === '') {
+          return true
+        }
+        // Si es un objeto, verificar que no tenga id válido
+        if (typeof batchValue === 'object' && !batchValue.id) {
+          return true
+        }
+        // Si tiene batch, excluir
+        return false
+      })
+      
+      // Excluir sacas ya seleccionadas
+      const selectedIds = new Set(selectedPulls.map(p => p.id))
+      pulls = pulls.filter(pull => !selectedIds.has(pull.id))
+      
+      // Excluir sacas por IDs si se proporcionan
+      if (excludePullIds.length > 0) {
+        const excludeSet = new Set(excludePullIds)
+        pulls = pulls.filter(pull => !excludeSet.has(pull.id))
+      }
+      
       setAvailablePulls(pulls)
     } catch (error) {
       console.error('Error al cargar sacas:', error)
@@ -66,7 +94,52 @@ const PullSelector = ({
                  pull.size === 'MEDIANO' ? 'Mediana' : 
                  pull.size === 'GRANDE' ? 'Grande' : pull.size
     
-    return `${pull.common_destiny} - ${size} (${packagesCount} paq.) ${pull.guide_number ? `- Guía: ${pull.guide_number}` : ''}`
+    // Formatear fecha si existe
+    let dateStr = ''
+    if (pull.created_at) {
+      const date = new Date(pull.created_at)
+      dateStr = `📅 ${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} - `
+    }
+    
+    return `${dateStr}${pull.common_destiny} - ${size} (${packagesCount} paq.) ${pull.guide_number ? `- Guía: ${pull.guide_number}` : ''}`
+  }
+
+  // Formato con resaltado de fecha
+  const formatOptionLabel = (option) => {
+    // react-select puede pasar el objeto directamente o con estructura { label, value, data }
+    let pull = option
+    if (option && typeof option === 'object' && 'data' in option) {
+      pull = option.data
+    }
+    
+    // Si pull es null o undefined, usar getOptionLabel como fallback
+    if (!pull) {
+      return getOptionLabel(option || {})
+    }
+    
+    const packagesCount = pull.packages_count || pull.packages?.length || 0
+    const size = pull.size === 'PEQUENO' ? 'Pequeña' : 
+                 pull.size === 'MEDIANO' ? 'Mediana' : 
+                 pull.size === 'GRANDE' ? 'Grande' : pull.size
+    
+    let dateStr = null
+    if (pull.created_at) {
+      const date = new Date(pull.created_at)
+      const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      dateStr = (
+        <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">
+          📅 {formattedDate} -
+        </span>
+      )
+    }
+    
+    return (
+      <div>
+        {dateStr}
+        <span>{pull.common_destiny || 'Sin destino'}</span>
+        <span> - {size} ({packagesCount} paq.) {pull.guide_number ? `- Guía: ${pull.guide_number}` : ''}</span>
+      </div>
+    )
   }
 
   return (
@@ -83,6 +156,7 @@ const PullSelector = ({
           value={selectedPulls}
           onChange={handleDropdownChange}
           getOptionLabel={getOptionLabel}
+          formatOptionLabel={formatOptionLabel}
           getOptionValue={(option) => option.id}
           placeholder="Buscar por destino, guía o tamaño..."
           noOptionsMessage={() => 'No hay sacas disponibles'}
@@ -126,7 +200,12 @@ const PullSelector = ({
                     <p className="font-semibold text-gray-900 dark:text-white">
                       {pull.common_destiny}
                     </p>
-                    <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300 flex-wrap">
+                      {pull.created_at && (
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          📅 {new Date(pull.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                      )}
                       <span>Tamaño: {sizeDisplay}</span>
                       <span>Paquetes: {packagesCount}</span>
                       {pull.guide_number && <span>Guía: {pull.guide_number}</span>}

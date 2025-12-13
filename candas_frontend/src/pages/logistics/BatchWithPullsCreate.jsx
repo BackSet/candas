@@ -37,9 +37,13 @@ const BatchWithPullsCreate = () => {
     try {
       setLoadingAgencies(true)
       const data = await transportAgenciesService.getActive()
-      setAgencies(data.results || data)
+      // Asegurar que siempre sea un array
+      const agenciesList = data?.results ?? data ?? []
+      setAgencies(Array.isArray(agenciesList) ? agenciesList : [])
+      console.log('Agencias cargadas:', agenciesList.length)
     } catch (error) {
       console.error('Error cargando agencias:', error)
+      console.error('Error response:', error.response?.data)
       toast.error('Error al cargar las agencias de transporte')
       setAgencies([])
     } finally {

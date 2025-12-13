@@ -60,10 +60,15 @@ const PullsCreate = () => {
         transportAgenciesService.getActive(),
         batchesService.list()
       ])
-      setAgencies(agenciesData.results || agenciesData || [])
-      setBatches(batchesData.results || batchesData || [])
+      // Asegurar que siempre sean arrays
+      const agenciesList = agenciesData?.results ?? agenciesData ?? []
+      const batchesList = batchesData?.results ?? batchesData ?? []
+      setAgencies(Array.isArray(agenciesList) ? agenciesList : [])
+      setBatches(Array.isArray(batchesList) ? batchesList : [])
+      console.log('Agencias cargadas:', agenciesList.length)
     } catch (error) {
       console.error('Error cargando datos:', error)
+      console.error('Error response:', error.response?.data)
       toast.error('Error al cargar datos del formulario')
       setAgencies([])
       setBatches([])

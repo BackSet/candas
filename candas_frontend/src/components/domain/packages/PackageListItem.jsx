@@ -110,7 +110,8 @@ const PackageListItem = ({
         case 'guide_number':
           return ensureString(pkg.guide_number) || '-'
         case 'nro_master':
-          return ensureString(pkg.nro_master) || '-'
+          const master = ensureString(pkg.nro_master)
+          return master && master.toLowerCase() !== 'none' ? master : '-'
         case 'name':
           return ensureString(pkg.name) || 'Sin nombre'
         case 'address':
@@ -118,7 +119,8 @@ const PackageListItem = ({
         case 'city':
           return ensureString(pkg.city) || '-'
         case 'province':
-          return ensureString(pkg.province) || '-'
+          const province = ensureString(pkg.province)
+          return province && province.toUpperCase() !== 'N/D' ? province : '-'
         case 'phone_number':
           return ensureString(pkg.phone_number) || '-'
         case 'status':
@@ -138,13 +140,20 @@ const PackageListItem = ({
           }
           return ensureString(pkg.effective_transport_agency || pkg.transport_agency_name) || '-'
         case 'pull_name':
-          if (!pkg.pull) return '-'
-          if (typeof pkg.pull === 'object') {
-            return ensureString(pkg.pull.common_destiny) || `Saca-${ensureString(pkg.pull.id || '').substring(0, 8)}`
+          // Intentar primero con pull_info (estructura del API)
+          if (pkg.pull_info && typeof pkg.pull_info === 'object') {
+            return ensureString(pkg.pull_info.common_destiny) || `Saca-${ensureString(pkg.pull_info.id || '').substring(0, 8)}`
           }
-          return `Saca-${ensureString(pkg.pull).substring(0, 8)}`
+          // Fallback a pull directo
+          if (pkg.pull) {
+            if (typeof pkg.pull === 'object') {
+              return ensureString(pkg.pull.common_destiny) || `Saca-${ensureString(pkg.pull.id || '').substring(0, 8)}`
+            }
+            return `Saca-${ensureString(pkg.pull).substring(0, 8)}`
+          }
+          return '-'
         case 'created_at':
-          return pkg.created_at ? new Date(pkg.created_at).toLocaleDateString('es-ES') : '-'
+          return pkg.created_at ? new Date(pkg.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'
         default: {
           // Usar ensureString para cualquier otro campo
           return ensureString(pkg[fieldId]) || '-'
@@ -179,15 +188,32 @@ const PackageListItem = ({
           )}
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          {visibleFields.filter(f => f !== 'guide_number' && f !== 'status' && f !== 'status_display').map(fieldId => {
+          {/* Campos importantes que siempre se muestran en formato tarjeta */}
+          {[
+            'name',
+            'city',
+            'province',
+            'transport_agency_name',
+            'pull_name',
+            'phone_number',
+            'nro_master',
+            'notes',
+            'created_at',
+            'hashtags',
+            'address'
+          ].map(fieldId => {
             const field = PACKAGE_DISPLAY_FIELDS[fieldId]
             if (!field) return null
             const value = getCardValue(fieldId)
+            const isDate = fieldId === 'created_at'
+            const isEmpty = !value || value === '-' || value === 'none' || value === 'N/A'
             
             return (
               <div key={fieldId} className="text-sm py-0.5">
                 <span className="text-gray-500 dark:text-gray-400">{field.label}:</span>
-                <span className="ml-2 text-gray-900 dark:text-white font-medium">{value}</span>
+                <span className={`ml-2 ${isDate && !isEmpty ? 'font-bold text-blue-600 dark:text-blue-400' : isEmpty ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-white font-medium'}`}>
+                  {isDate && !isEmpty ? `📅 ${value}` : (isEmpty ? '-' : value)}
+                </span>
               </div>
             )
           })}
@@ -219,24 +245,69 @@ const PackageListItem = ({
             <span className="text-gray-400 dark:text-gray-500">Destinatario:</span> {ensureString(pkg.name) || 'Sin nombre'}
           </p>
         )}
-        {visibleFields.includes('address') && pkg.address && (
+        {visibleFields.includes('address') && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             <i className="fas fa-map-marker-alt mr-1 text-gray-400"></i>
-            {ensureString(pkg.address)}
+            {pkg.address ? ensureString(pkg.address) : <span className="text-gray-400 italic">-</span>}
           </p>
         )}
-        {(visibleFields.includes('city') || visibleFields.includes('province')) && (pkg.city || pkg.province) && (
+        {(visibleFields.includes('city') || visibleFields.includes('province')) && (
           <p className="text-xs mt-0.5">
             <span className="text-cyan-600 dark:text-cyan-400">
               <i className="fas fa-city mr-1"></i>
-              {ensureString(pkg.city)}{pkg.city && pkg.province ? ', ' : ''}{ensureString(pkg.province)}
+              {pkg.city || pkg.province ? (
+                <>
+                  {ensureString(pkg.city)}{pkg.city && pkg.province ? ', ' : ''}{ensureString(pkg.province)}
+                </>
+              ) : (
+                <span className="text-gray-400 italic">-</span>
+              )}
             </span>
           </p>
         )}
-        {visibleFields.includes('phone_number') && pkg.phone_number && (
+        {visibleFields.includes('phone_number') && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             <i className="fas fa-phone mr-1"></i>
-            {ensureString(pkg.phone_number)}
+            {pkg.phone_number ? ensureString(pkg.phone_number) : <span className="text-gray-400 italic">-</span>}
+          </p>
+        )}
+        {visibleFields.includes('transport_agency_name') && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <i className="fas fa-truck mr-1"></i>
+            {pkg.transport_agency?.name || pkg.effective_transport_agency || pkg.transport_agency_name || <span className="text-gray-400 italic">-</span>}
+          </p>
+        )}
+        {visibleFields.includes('pull_name') && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <i className="fas fa-boxes mr-1"></i>
+            {pkg.pull ? (
+              typeof pkg.pull === 'object' ? (pkg.pull.common_destiny || `Saca-${ensureString(pkg.pull.id || '').substring(0, 8)}`) : `Saca-${ensureString(pkg.pull).substring(0, 8)}`
+            ) : (
+              <span className="text-gray-400 italic">-</span>
+            )}
+          </p>
+        )}
+        {visibleFields.includes('notes') && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <i className="fas fa-sticky-note mr-1"></i>
+            {pkg.notes ? ensureString(pkg.notes) : <span className="text-gray-400 italic">-</span>}
+          </p>
+        )}
+        {visibleFields.includes('hashtags') && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <i className="fas fa-hashtag mr-1"></i>
+            {pkg.hashtags ? (
+              Array.isArray(pkg.hashtags) ? pkg.hashtags.map(h => ensureString(h)).join(', ') : ensureString(pkg.hashtags)
+            ) : (
+              <span className="text-gray-400 italic">-</span>
+            )}
+          </p>
+        )}
+        {visibleFields.includes('created_at') && pkg.created_at && (
+          <p className="text-xs mt-0.5">
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              📅 {new Date(pkg.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </span>
           </p>
         )}
       </div>

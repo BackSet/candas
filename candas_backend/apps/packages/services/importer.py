@@ -337,7 +337,7 @@ class PackageImporter:
             for row_num, row_data in enumerate(rows_data, start=3):  # Start=3 porque row 1=headers, row 2=ejemplos
                 try:
                     with transaction.atomic():
-                        package, row_warnings = PackageImporter._create_package_from_row(row_data)
+                        package, row_warnings = PackageImporter._create_package_from_row(row_data, import_record)
                         successful += 1
                         # Agregar advertencias de esta fila usando comprensión
                         warnings.extend(f"Fila {row_num}: {warning}" for warning in row_warnings)
@@ -469,12 +469,13 @@ class PackageImporter:
         return rows_data
     
     @staticmethod
-    def _create_package_from_row(row_data: dict) -> tuple[Package, list[str]]:
+    def _create_package_from_row(row_data: dict, import_record: Optional[PackageImport] = None) -> tuple[Package, list[str]]:
         """
         Crea un paquete desde una fila de datos
         
         Args:
             row_data (dict): Datos de la fila
+            import_record (PackageImport, optional): Registro de importación al que pertenece este paquete
         
         Returns:
             tuple: (Package, list) - Paquete creado y lista de advertencias
@@ -566,7 +567,47 @@ class PackageImporter:
             except DeliveryAgency.DoesNotExist:
                 raise ValueError(f"Agencia de reparto no encontrada: {agency_name}")
         
+        # Asignar referencia a la importación si se proporciona
+        if import_record:
+            package_data['package_import'] = import_record
+        
         # Crear paquete
         package = Package.objects.create(**package_data)
         
         return package, warnings
+    
+    @staticmethod
+    def delete_imported_packages(import_record_id: int) -> dict:
+        """
+        Elimina todos los paquetes importados de una importación específica.
+        
+        Args:
+            import_record_id: ID del registro PackageImport
+        
+        Returns:
+            dict: Resumen de la eliminación con cantidad de paquetes eliminados
+        
+        Raises:
+            PackageImport.DoesNotExist: Si la importación no existe
+        """
+        from ..models import PackageImport
+        
+        try:
+            import_record = PackageImport.objects.get(id=import_record_id)
+        except PackageImport.DoesNotExist:
+            raise PackageImport.DoesNotExist(f"La importación con ID {import_record_id} no existe")
+        
+        # Obtener todos los paquetes asociados a esta importación
+        packages = Package.objects.filter(package_import=import_record)
+        count = packages.count()
+        
+        # Eliminar todos los paquetes en una transacción
+        with transaction.atomic():
+            packages.delete()
+        
+        return {
+            'success': True,
+            'import_id': str(import_record_id),
+            'deleted_count': count,
+            'message': f'Se eliminaron {count} paquete(s) de la importación {import_record_id}'
+        }

@@ -73,6 +73,68 @@ export const dispatchesService = {
     })
     return response.data
   },
+
+  // Generar manifiesto PDF
+  generateManifest: async (id) => {
+    const response = await api.get(`/api/v1/dispatches/${id}/generate-manifest/`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `manifiesto_despacho_${id}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    return response.data
+  },
+
+  // Generar manifiesto Excel
+  generateManifestExcel: async (id) => {
+    const response = await api.get(`/api/v1/dispatches/${id}/generate-manifest-excel/`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `manifiesto_despacho_${id}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    return response.data
+  },
+
+  // Exportar despacho a Excel con formato personalizado
+  exportExcelCustomFormat: async (id, guideStatus = null) => {
+    const params = {}
+    if (guideStatus) {
+      params.guide_status = guideStatus
+    }
+    const response = await api.get(`/api/v1/dispatches/${id}/export-excel-custom-format/`, {
+      params,
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    link.setAttribute('download', `manifiesto_despacho_${timestamp}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    return response.data
+  },
+
+  // Obtener despachos por fecha
+  getByDate: async (date) => {
+    const response = await api.get('/api/v1/dispatches/by-date/', {
+      params: { date }
+    })
+    return response.data
+  },
 }
 
 export default dispatchesService

@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 from django.http import HttpResponse
 from django.db.models import QuerySet
 from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
@@ -118,40 +119,98 @@ class PackageExportService:
         ws = wb.active
         ws.title = "Paquetes"
         
+        # Contar total de paquetes
+        total_packages = queryset.count()
+        
         # Si no hay columnas especificadas, usar todas
         if not columns_config:
             columns_config = list(cls.AVAILABLE_FIELDS.keys())
         
+        # Estilos
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        title_font = Font(bold=True, size=14)
+        info_font = Font(size=11)
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Obtener letra de la última columna
+        last_col_letter = get_column_letter(len(columns_config))
+        
+        # Agregar encabezado del reporte
+        row_num = 1
+        ws.merge_cells(f'A{row_num}:{last_col_letter}{row_num}')
+        title_cell = ws[f'A{row_num}']
+        title_cell.value = f"Reporte de Paquetes - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        title_cell.font = title_font
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+        row_num += 1
+        
+        # Agregar información del total
+        ws.merge_cells(f'A{row_num}:{last_col_letter}{row_num}')
+        info_cell = ws[f'A{row_num}']
+        info_cell.value = f"Total de Paquetes: {total_packages}"
+        info_cell.font = info_font
+        info_cell.alignment = Alignment(horizontal='left', vertical='center')
+        row_num += 1
+        
+        # Línea en blanco
+        row_num += 1
+        
         # Agregar headers
         headers = [cls.AVAILABLE_FIELDS.get(col, col) for col in columns_config]
-        ws.append(headers)
-        
-        # Formatear headers
-        header_font = Font(bold=True, size=12)
-        header_alignment = Alignment(horizontal='center', vertical='center')
-        
-        # Aplicar formato a todas las celdas del header de una vez
-        for cell in ws[1]:
+        header_row = row_num
+        for col_idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=row_num, column=col_idx)
+            cell.value = header
             cell.font = header_font
+            cell.fill = header_fill
             cell.alignment = header_alignment
+            cell.border = border
+        row_num += 1
         
         # Agregar datos
         for package in queryset:
-            row_data = [
-                cls.get_package_field_value(package, field_name)
-                for field_name in columns_config
-            ]
-            ws.append(row_data)
+            for col_idx, field_name in enumerate(columns_config, start=1):
+                cell = ws.cell(row=row_num, column=col_idx)
+                cell.value = cls.get_package_field_value(package, field_name)
+                cell.border = border
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+            row_num += 1
+        
+        # Agregar fila de total al final
+        total_row = row_num
+        ws.merge_cells(f'A{total_row}:{last_col_letter}{total_row}')
+        total_cell = ws[f'A{total_row}']
+        total_cell.value = f"Total: {total_packages} paquete{'s' if total_packages != 1 else ''}"
+        total_cell.font = Font(bold=True, size=11)
+        total_cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        total_cell.alignment = Alignment(horizontal='center', vertical='center')
+        total_cell.border = border
         
         # Auto-ajustar ancho de columnas
-        for column in ws.columns:
-            column_letter = column[0].column_letter
-            # Usar generador para eficiencia en memoria
+        for col_idx in range(1, len(columns_config) + 1):
+            column_letter = get_column_letter(col_idx)
+            # Obtener todas las celdas de la columna (saltando filas de encabezado y total)
+            data_cells = []
+            for row_idx in range(header_row + 1, total_row):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                if cell.value:
+                    data_cells.append(cell)
+            
             max_length = max(
-                (len(str(cell.value)) for cell in column if cell.value),
-                default=0
+                (len(str(cell.value)) for cell in data_cells),
+                default=10
             )
-            adjusted_width = min(max_length + 2, 50)  # Máximo 50 caracteres
+            # Considerar también el ancho del header
+            header_cell = ws.cell(row=header_row, column=col_idx)
+            header_width = len(str(header_cell.value)) if header_cell.value else 10
+            adjusted_width = min(max(max_length, header_width) + 2, 50)  # Máximo 50 caracteres
             ws.column_dimensions[column_letter].width = adjusted_width
         
         # Preparar respuesta HTTP
@@ -205,13 +264,31 @@ class PackageExportService:
         # Contenedor de elementos
         elements = []
         
+        # Contar total de paquetes
+        total_packages = queryset.count()
+        
         # Agregar título
         styles = getSampleStyleSheet()
+        title_style = styles['Title']
+        title_style.alignment = 1  # Center alignment
+        
         title = Paragraph(
-            f"<b>Reporte de Paquetes - {datetime.now().strftime('%Y-%m-%d %H:%M')}</b>",
-            styles['Title']
+            f"<b>Reporte de Paquetes</b><br/>"
+            f"<font size=10>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>",
+            title_style
         )
         elements.append(title)
+        elements.append(Paragraph("<br/>", styles['Normal']))
+        
+        # Agregar información del total
+        info_style = styles['Normal']
+        info_style.fontSize = 11
+        info_style.alignment = 1  # Center alignment
+        total_info = Paragraph(
+            f"<b>Total de Paquetes: {total_packages}</b>",
+            info_style
+        )
+        elements.append(total_info)
         elements.append(Paragraph("<br/><br/>", styles['Normal']))
         
         # Preparar datos de tabla
@@ -259,6 +336,17 @@ class PackageExportService:
         ]))
         
         elements.append(table)
+        
+        # Agregar resumen al final
+        elements.append(Paragraph("<br/>", styles['Normal']))
+        summary_style = styles['Normal']
+        summary_style.fontSize = 10
+        summary_style.alignment = 1  # Center alignment
+        summary = Paragraph(
+            f"<b>Resumen: {total_packages} paquete{'s' if total_packages != 1 else ''} exportado{'s' if total_packages != 1 else ''}</b>",
+            summary_style
+        )
+        elements.append(summary)
         
         # Construir PDF
         doc.build(elements)

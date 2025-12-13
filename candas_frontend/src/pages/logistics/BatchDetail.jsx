@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import batchesService from '../../services/batchesService'
+import pullsService from '../../services/pullsService'
 import { Card, Button, LoadingSpinner, Badge } from '../../components'
 
 // Opciones de estado de paquetes
@@ -24,6 +25,11 @@ const BatchDetail = () => {
   const [selectedPull, setSelectedPull] = useState(null)
   const [changingStatus, setChangingStatus] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('')
+  
+  // Estado para gestionar paquetes de sacas
+  const [expandedPulls, setExpandedPulls] = useState({}) // { pullId: true/false }
+  const [pullPackages, setPullPackages] = useState({}) // { pullId: [packages] }
+  const [loadingPackages, setLoadingPackages] = useState({}) // { pullId: true/false }
 
   useEffect(() => {
     loadBatch()
@@ -102,6 +108,17 @@ const BatchDetail = () => {
     }
   }
 
+  const handleExportExcelCustomFormat = async () => {
+    try {
+      toast.info('Generando Excel con formato personalizado...')
+      await batchesService.exportExcelCustomFormat(id)
+      toast.success('Excel descargado correctamente')
+    } catch (error) {
+      console.error('Error al exportar Excel:', error)
+      toast.error('Error al generar el Excel')
+    }
+  }
+
   const handleDownloadLabels = async () => {
     try {
       toast.info('Generando etiquetas de sacas...')
@@ -110,6 +127,23 @@ const BatchDetail = () => {
     } catch (error) {
       console.error('Error al descargar etiquetas:', error)
       toast.error('Error al generar las etiquetas')
+    }
+  }
+
+  const handleGenerateNotificationMessage = async () => {
+    try {
+      const data = await batchesService.generateNotificationMessage(id)
+      
+      // Copiar mensaje al portapapeles
+      await navigator.clipboard.writeText(data.message)
+      toast.success('Mensaje de notificación copiado al portapapeles')
+      
+      // Mostrar el mensaje en un modal o alerta
+      const messageWithDetails = `${data.message}\n\nDetalles:\n- Agencia: ${data.agency_name}\n- Número de guía: ${data.guide_number}\n- Total de paquetes: ${data.total_packages}`
+      alert(messageWithDetails)
+    } catch (error) {
+      console.error('Error al generar mensaje:', error)
+      toast.error(error.response?.data?.error || 'Error al generar el mensaje de notificación')
     }
   }
 
@@ -134,11 +168,48 @@ const BatchDetail = () => {
       await loadBatch()
       await loadPackagesSummary()
       setSelectedStatus('')
+      // Limpiar paquetes cargados para forzar recarga
+      setPullPackages({})
     } catch (error) {
       console.error('Error al cambiar estado:', error)
       toast.error(error.response?.data?.error || 'Error al cambiar el estado de los paquetes')
     } finally {
       setChangingStatus(false)
+    }
+  }
+
+  const getStatusBadgeVariant = (status) => {
+    const statusVariants = {
+      NO_RECEPTADO: 'default',
+      EN_BODEGA: 'info',
+      EN_TRANSITO: 'warning',
+      ENTREGADO: 'success',
+      DEVUELTO: 'danger',
+      RETENIDO: 'secondary',
+    }
+    return statusVariants[status] || 'default'
+  }
+
+  const loadPullPackages = async (pullId) => {
+    try {
+      setLoadingPackages(prev => ({ ...prev, [pullId]: true }))
+      const pullData = await pullsService.get(pullId)
+      setPullPackages(prev => ({ ...prev, [pullId]: pullData.packages || [] }))
+    } catch (error) {
+      console.error('Error cargando paquetes de la saca:', error)
+      toast.error('Error al cargar los paquetes de la saca')
+    } finally {
+      setLoadingPackages(prev => ({ ...prev, [pullId]: false }))
+    }
+  }
+
+  const togglePullExpanded = async (pullId) => {
+    const isExpanded = expandedPulls[pullId]
+    setExpandedPulls(prev => ({ ...prev, [pullId]: !isExpanded }))
+    
+    // Cargar paquetes si se está expandiendo y no están cargados
+    if (!isExpanded && !pullPackages[pullId]) {
+      await loadPullPackages(pullId)
     }
   }
 
@@ -202,7 +273,7 @@ const BatchDetail = () => {
             <i className="fas fa-file-download text-green-500 mr-2"></i>
             Documentos y Etiquetas
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <Button
               variant="success"
               onClick={handleDownloadManifestPDF}
@@ -226,6 +297,24 @@ const BatchDetail = () => {
             >
               <i className="fas fa-tags mr-2"></i>
               Etiquetas de Sacas
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleGenerateNotificationMessage}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              <i className="fas fa-envelope mr-2"></i>
+              Mensaje de Envío
+            </Button>
+          </div>
+          <div className="mt-3">
+            <Button
+              variant="success"
+              onClick={handleExportExcelCustomFormat}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              <i className="fas fa-file-excel mr-2"></i>
+              Exportar Excel (Formato Transportadora)
             </Button>
           </div>
         </div>
@@ -489,9 +578,17 @@ const BatchDetail = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePullExpanded(pull.id)}
+                        >
+                          <i className={`fas ${expandedPulls[pull.id] ? 'fa-chevron-up' : 'fa-chevron-down'} mr-1`}></i>
+                          {expandedPulls[pull.id] ? 'Ocultar' : 'Ver'} Paquetes
+                        </Button>
+                        <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => navigate(`/logistica/sacas/${pull.id}`)}
+                          onClick={() => navigate(`/logistica/pulls/${pull.id}`)}
                         >
                           <i className="fas fa-eye"></i>
                         </Button>
@@ -504,6 +601,63 @@ const BatchDetail = () => {
                         </Button>
                       </div>
                     </div>
+                    
+                    {/* Lista de paquetes expandida */}
+                    {expandedPulls[pull.id] && (
+                      <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-800">
+                        {loadingPackages[pull.id] ? (
+                          <div className="text-center py-4">
+                            <LoadingSpinner size="sm" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Cargando paquetes...</p>
+                          </div>
+                        ) : pullPackages[pull.id] && pullPackages[pull.id].length > 0 ? (
+                          <div className="space-y-2">
+                            <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <i className="fas fa-boxes mr-2 text-purple-500"></i>
+                              Paquetes ({pullPackages[pull.id].length})
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+                              {pullPackages[pull.id].map((pkg) => (
+                                <div key={pkg.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="font-medium text-sm text-gray-900 dark:text-white">
+                                        <i className="fas fa-barcode mr-2 text-purple-500"></i>
+                                        {pkg.guide_number || pkg.id?.substring(0, 8)}
+                                      </div>
+                                      {pkg.name && (
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                          <i className="fas fa-user mr-1"></i>
+                                          {pkg.name}
+                                        </div>
+                                      )}
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                        {pkg.city && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            <i className="fas fa-map-marker-alt mr-1"></i>
+                                            {pkg.city}
+                                          </span>
+                                        )}
+                                        {pkg.status && (
+                                          <Badge variant={getStatusBadgeVariant(pkg.status)} size="sm">
+                                            {pkg.status_display || pkg.status}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                            <i className="fas fa-box-open text-2xl mb-2 opacity-50"></i>
+                            <p className="text-sm">No hay paquetes en esta saca</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))

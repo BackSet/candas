@@ -1,18 +1,25 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import pullsService from '../../services/pullsService'
-import { Card, Button, DataTable, Badge, TableActions, DocumentButtons, StatCard } from '../../components'
+import { Card, Button, DataTable, Badge, TableActions, DocumentButtons, StatCard, MessageModal } from '../../components'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import { useAsyncOperation } from '../../hooks/useAsyncOperation'
 import logger from '../../utils/logger'
 
 const PullsList = () => {
   const navigate = useNavigate()
+  const [messageModal, setMessageModal] = useState({
+    show: false,
+    message: '',
+    details: null,
+    entityId: null,
+  })
 
   // Función de fetch estabilizada con useCallback
+  // Filtrar solo sacas individuales (sin lote)
   const fetchFunction = useCallback(
-    (params) => pullsService.list(params),
+    (params) => pullsService.list({ ...params, available: true }),
     []
   )
 
@@ -77,6 +84,29 @@ const PullsList = () => {
     } catch (error) {
       toast.error('Error al generar la etiqueta')
       logger.error('Error generando etiqueta:', error)
+    }
+  }
+
+  const handleGenerateMessage = async (pullId) => {
+    try {
+      const data = await pullsService.generateNotificationMessage(pullId)
+      // Buscar el pull en la lista para obtener información adicional
+      const pull = safePulls.find(p => p.id === pullId)
+      const packagesInPull = pull?.packages_count ?? data.total_packages ?? 0
+      
+      setMessageModal({
+        show: true,
+        message: data.message,
+        entityId: pullId,
+        details: {
+          agency_name: data.agency_name,
+          guide_number: data.guide_number,
+          total_packages: packagesInPull,
+        },
+      })
+    } catch (error) {
+      console.error('Error al generar mensaje:', error)
+      toast.error(error.response?.data?.error || 'Error al generar el mensaje de notificación')
     }
   }
 
@@ -146,20 +176,6 @@ const PullsList = () => {
       )
     },
     { 
-      key: 'batch', 
-      header: 'Lote',
-      cell: (pull) => pull.batch ? (
-        <Badge variant="purple">
-          <i className="fas fa-layer-group mr-1"></i>
-          Lote
-        </Badge>
-      ) : (
-        <span className="text-sm text-gray-400 dark:text-gray-500 italic">
-          -
-        </span>
-      )
-    },
-    { 
       key: 'guide_number', 
       header: 'Guía',
       cell: (pull) => pull.guide_number ? (
@@ -173,6 +189,18 @@ const PullsList = () => {
       )
     },
     { 
+      key: 'created_at', 
+      header: 'Fecha',
+      cell: (pull) => (
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+          <i className="fas fa-calendar text-sm"></i>
+          <span className="text-sm">
+            {pull.created_at ? new Date(pull.created_at).toLocaleDateString('es-ES') : '-'}
+          </span>
+        </div>
+      )
+    },
+    { 
       key: 'documents', 
       header: 'Documentos',
       cell: (pull) => (
@@ -181,6 +209,8 @@ const PullsList = () => {
           onPDF={handleDownloadManifestPDF}
           onExcel={handleDownloadManifestExcel}
           onLabel={handleDownloadLabel}
+          onMessage={handleGenerateMessage}
+          showMessage={true}
         />
       )
     },
@@ -289,6 +319,15 @@ const PullsList = () => {
         emptyDescription="No hay sacas registradas"
         emptyActionLabel="Crear Primera Saca"
         onEmptyAction={() => navigate('/logistica/pulls/crear')}
+      />
+
+      <MessageModal
+        show={messageModal.show}
+        onClose={() => setMessageModal({ show: false, message: '', details: null, entityId: null })}
+        message={messageModal.message}
+        details={messageModal.details}
+        entityId={messageModal.entityId}
+        type="pull"
       />
     </div>
   )

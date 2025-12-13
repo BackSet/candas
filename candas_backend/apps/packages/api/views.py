@@ -19,6 +19,8 @@ from ..services import (
     PackageManifestGenerator,
     PackageLabelsGenerator
 )
+from apps.shared.services.universal_manifest_generator import UniversalManifestGenerator
+from apps.shared.services.manifest_registry import ManifestRegistry
 from .serializers import (
     PackageListSerializer,
     PackageDetailSerializer,
@@ -141,6 +143,13 @@ class PackageViewSet(viewsets.ModelViewSet):
                 Q(parent__isnull=False) | Exists(has_children)
             ).distinct()
         
+        # Filtro por hashtags
+        hashtags = self.request.query_params.get('hashtags', None)
+        if hashtags:
+            # Buscar hashtags que contengan el término (case-insensitive)
+            # El campo hashtags es un CharField que contiene hashtags separados por espacios
+            queryset = queryset.filter(hashtags__icontains=hashtags)
+        
         return queryset
     
     @action(detail=False, methods=['get'])
@@ -148,10 +157,10 @@ class PackageViewSet(viewsets.ModelViewSet):
         """
         Listar paquetes disponibles para agregar a Pull
         GET /api/v1/packages/available_for_pull/
+        Solo filtra paquetes que no estén asociados a una saca (pull)
         """
         packages = Package.objects.filter(
-            pull__isnull=True,
-            status='EN_BODEGA'
+            pull__isnull=True
         )
         
         # Aplicar filtros de búsqueda
@@ -416,6 +425,11 @@ class PackageViewSet(viewsets.ModelViewSet):
                     Q(name__icontains=search_term) |
                     Q(address__icontains=search_term)
                 )
+            
+            # Filtro por hashtags
+            if filters.get('hashtags'):
+                hashtags = filters['hashtags']
+                queryset = queryset.filter(hashtags__icontains=hashtags)
             
             # Limitar a página actual si es necesario
             if export_scope == 'page' and page_ids:
@@ -759,7 +773,7 @@ class PackageViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def generate_manifest_pdf(self, request, pk=None):
         """
-        Generar PDF con manifiesto del paquete individual.
+        Generar PDF con manifiesto del paquete individual (sistema automático).
         Incluye: información completa del paquete, destinatario, agencia, guía, estado, etc.
         
         GET /api/v1/packages/{id}/generate_manifest_pdf/
@@ -767,8 +781,11 @@ class PackageViewSet(viewsets.ModelViewSet):
         package = self.get_object()
         
         try:
-            # Generar PDF
-            pdf_buffer = PackageManifestGenerator.generate_pdf(package)
+            # Obtener adapter automáticamente
+            adapter = ManifestRegistry.get_adapter_for_entity(package)
+            
+            # Generar PDF usando sistema universal
+            pdf_buffer = UniversalManifestGenerator.generate_pdf(package, adapter)
             
             # Nombre del archivo
             filename = f"manifiesto_paquete_{package.guide_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
@@ -787,7 +804,7 @@ class PackageViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def generate_manifest_excel(self, request, pk=None):
         """
-        Generar Excel con manifiesto del paquete individual.
+        Generar Excel con manifiesto del paquete individual (sistema automático).
         Incluye: información completa del paquete, destinatario, agencia, guía, estado, etc.
         
         GET /api/v1/packages/{id}/generate_manifest_excel/
@@ -795,8 +812,11 @@ class PackageViewSet(viewsets.ModelViewSet):
         package = self.get_object()
         
         try:
-            # Generar Excel
-            excel_buffer = PackageManifestGenerator.generate_excel(package)
+            # Obtener adapter automáticamente
+            adapter = ManifestRegistry.get_adapter_for_entity(package)
+            
+            # Generar Excel usando sistema universal
+            excel_buffer = UniversalManifestGenerator.generate_excel(package, adapter)
             
             # Nombre del archivo
             filename = f"manifiesto_paquete_{package.guide_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
@@ -869,6 +889,151 @@ class PackageViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {'error': f'Error al generar etiqueta de envío: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['get'], url_path='barcode-image')
+    def get_barcode_image(self, request, pk=None):
+        """
+        Obtener imagen del código de barras del paquete.
+        El código de barras se genera a partir del número de guía del paquete.
+        
+        GET /api/v1/packages/{id}/barcode-image/
+        """
+        package = self.get_object()
+        
+        try:
+            import barcode
+            from barcode.writer import ImageWriter
+            from io import BytesIO
+            from PIL import Image
+            import json
+            
+            # #region agent log
+            with open('/home/backset/Projects/candas/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'A',
+                    'location': 'views.py:890',
+                    'message': 'Package object retrieved',
+                    'data': {
+                        'package_id': str(package.id),
+                        'package_guide_number': str(package.guide_number) if package.guide_number else 'None',
+                        'package_guide_number_type': type(package.guide_number).__name__
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
+            # #endregion
+            
+            # Usar directamente el número de guía del paquete
+            guide_number = package.guide_number
+            
+            # #region agent log
+            with open('/home/backset/Projects/candas/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'C',
+                    'location': 'views.py:905',
+                    'message': 'Guide number from package',
+                    'data': {
+                        'guide_number': str(guide_number) if guide_number else 'None',
+                        'guide_number_type': type(guide_number).__name__,
+                        'guide_number_repr': repr(guide_number),
+                        'is_none': guide_number is None,
+                        'is_empty_string': guide_number == '' if isinstance(guide_number, str) else False
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
+            # #endregion
+            
+            # Validar que guide_number existe y no está vacío
+            if not guide_number or (isinstance(guide_number, str) and guide_number.strip() == ''):
+                # Si no hay guía, usar el ID del paquete como fallback
+                guide_number = str(package.id).replace('-', '')[:20]
+                # #region agent log
+                with open('/home/backset/Projects/candas/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'A',
+                        'location': 'views.py:920',
+                        'message': 'Fallback to package ID - guide_number was None or empty',
+                        'data': {'fallback_guide_number': guide_number},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+                # #endregion
+            
+            # Convertir a string y limpiar
+            guide_number_str = str(guide_number).strip()
+            
+            # Validar que no sea la cadena literal "none"
+            if guide_number_str.lower() == 'none' or not guide_number_str:
+                guide_number_str = str(package.id).replace('-', '')[:20]
+                # #region agent log
+                with open('/home/backset/Projects/candas/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        'sessionId': 'debug-session',
+                        'runId': 'run1',
+                        'hypothesisId': 'B',
+                        'location': 'views.py:935',
+                        'message': 'Fallback to package ID - guide_number was "none" or empty after strip',
+                        'data': {'final_guide_number_str': guide_number_str},
+                        'timestamp': int(__import__('time').time() * 1000)
+                    }) + '\n')
+                # #endregion
+            
+            # #region agent log
+            with open('/home/backset/Projects/candas/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'E',
+                    'location': 'views.py:945',
+                    'message': 'Final value before barcode generation',
+                    'data': {
+                        'final_guide_number_str': guide_number_str,
+                        'length': len(guide_number_str),
+                        'value': guide_number_str
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
+            # #endregion
+            
+            # Generar código de barras Code128
+            barcode_class = barcode.get_barcode_class('code128')
+            barcode_instance = barcode_class(guide_number_str, writer=ImageWriter())
+            
+            # Generar imagen del código de barras
+            barcode_buffer = BytesIO()
+            barcode_instance.write(barcode_buffer, options={
+                'module_width': 0.4,
+                'module_height': 20.0,
+                'quiet_zone': 3.0,
+                'font_size': 10,
+                'text_distance': 3.0,
+            })
+            barcode_buffer.seek(0)
+            
+            # Cargar y convertir la imagen
+            barcode_image = Image.open(barcode_buffer)
+            if barcode_image.mode != 'RGB':
+                barcode_image = barcode_image.convert('RGB')
+            
+            # Guardar en buffer para respuesta
+            img_buffer = BytesIO()
+            barcode_image.save(img_buffer, format='PNG')
+            img_buffer.seek(0)
+            
+            # Retornar imagen
+            response = HttpResponse(img_buffer.getvalue(), content_type='image/png')
+            response['Content-Disposition'] = f'inline; filename="barcode_{guide_number}.png"'
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al generar código de barras: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -1162,6 +1327,63 @@ class PackageViewSet(viewsets.ModelViewSet):
                 {'error': f'Error al asociar hijos: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['get'])
+    def generate_notification_message(self, request, pk=None):
+        """
+        Generar mensaje de notificación para avisar al usuario que su paquete ha sido enviado.
+        GET /api/v1/packages/{id}/generate_notification_message/
+        """
+        package = self.get_object()
+        
+        try:
+            # Obtener información del paquete
+            transport_agency = package.get_shipping_agency()
+            guide_number = package.get_shipping_guide_number() or package.agency_guide_number
+            
+            if not transport_agency:
+                return Response(
+                    {'error': 'El paquete no tiene agencia de transporte asignada'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if not guide_number:
+                return Response(
+                    {'error': 'El paquete no tiene número de guía asignado'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Determinar URL de seguimiento según la agencia
+            tracking_url = None
+            agency_name_lower = transport_agency.name.lower()
+            if 'yobel' in agency_name_lower:
+                tracking_url = 'https://www.yobelscm.biz/ecuador/tracking-clientes-yobel-express-2/'
+            
+            # Generar mensaje
+            message_parts = [
+                f"Su paquete ha sido enviado a través de la agencia {transport_agency.name}.",
+                f"Número de guía: {guide_number}.",
+                "Se ha enviado 1 paquete.",
+            ]
+            
+            if tracking_url:
+                message_parts.append(f"Puede realizar el seguimiento en: {tracking_url}")
+            
+            message = " ".join(message_parts)
+            
+            return Response({
+                'message': message,
+                'agency_name': transport_agency.name,
+                'guide_number': guide_number,
+                'total_packages': 1,
+                'tracking_url': tracking_url,
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al generar mensaje de notificación: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class PackageImportViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1172,4 +1394,28 @@ class PackageImportViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PackageImportSerializer
     permission_classes = [IsAuthenticated]
     ordering = ['-created_at']
+    
+    @action(detail=True, methods=['delete'], url_path='delete-packages')
+    def delete_packages(self, request, pk=None):
+        """
+        Elimina todos los paquetes importados de una importación específica.
+        
+        DELETE /api/v1/package-imports/{id}/delete-packages/
+        """
+        try:
+            result = PackageImporter.delete_imported_packages(pk)
+            return Response(
+                result,
+                status=status.HTTP_200_OK
+            )
+        except PackageImport.DoesNotExist:
+            return Response(
+                {'error': f'La importación con ID {pk} no existe'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error al eliminar paquetes: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
