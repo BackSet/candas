@@ -19,6 +19,7 @@ import BatchFormWizard from './pages/logistics/BatchFormWizard'
 import BatchEdit from './pages/logistics/BatchEdit'
 import DispatchesList from './pages/logistics/DispatchesList'
 import DispatchCreate from './pages/logistics/DispatchCreate'
+import DispatchDetail from './pages/logistics/DispatchDetail'
 import IndividualPackagesList from './pages/logistics/IndividualPackagesList'
 import CreateIndividualPackage from './pages/logistics/CreateIndividualPackage'
 import EditIndividualPackage from './pages/logistics/EditIndividualPackage'
@@ -38,6 +39,7 @@ import ReportsScheduled from './pages/reports/ReportsScheduled'
 import TransportAgenciesList from './pages/catalog/TransportAgenciesList'
 import TransportAgencyForm from './pages/catalog/TransportAgencyForm'
 import TransportAgencyDetail from './pages/catalog/TransportAgencyDetail'
+import ExcelMapper from './pages/tools/ExcelMapper'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { KeyboardProvider, useKeyboard, useShortcut } from './contexts/KeyboardContext'
@@ -131,14 +133,21 @@ const GlobalKeyboardShortcuts = () => {
 }
 
 function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <KeyboardProvider>
-            <Router>
-              <GlobalKeyboardShortcuts />
-              <Routes>
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/e032b260-3761-424c-8962-a2f280305add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:133',message:'App component RENDER',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }
+  // #endregion
+  
+  try {
+    return (
+      <ErrorBoundary>
+        <ThemeProvider>
+          <AuthProvider>
+            <KeyboardProvider>
+              <Router>
+                <GlobalKeyboardShortcuts />
+                <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
                 <ProtectedRoute>
@@ -161,6 +170,7 @@ function App() {
               <Route path="logistica/batches/:id/editar" element={<BatchEdit />} />
               <Route path="logistica/dispatches" element={<DispatchesList />} />
               <Route path="logistica/dispatches/crear" element={<DispatchCreate />} />
+              <Route path="logistica/dispatches/:id" element={<DispatchDetail />} />
               <Route path="logistica/individuales" element={<IndividualPackagesList />} />
               <Route path="logistica/individuales/crear" element={<CreateIndividualPackage />} />
               <Route path="logistica/individuales/editar/:id" element={<EditIndividualPackage />} />
@@ -188,6 +198,9 @@ function App() {
               <Route path="catalogo/agencias-transporte/crear" element={<TransportAgencyForm />} />
               <Route path="catalogo/agencias-transporte/editar/:id" element={<TransportAgencyForm />} />
               <Route path="catalogo/agencias-transporte/:id" element={<TransportAgencyDetail />} />
+              
+              {/* Rutas de Herramientas */}
+              <Route path="herramientas/mapeador-excel" element={<ExcelMapper />} />
             </Route>
           </Routes>
             <ToastContainer
@@ -207,7 +220,22 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
-  )
+    )
+  } catch (error) {
+    // #region agent log
+    if (typeof window !== 'undefined') {
+      fetch('http://127.0.0.1:7242/ingest/e032b260-3761-424c-8962-a2f280305add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:210',message:'App component ERROR',data:{errorMessage:error?.message,errorStack:error?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    }
+    // #endregion
+    console.error('Error in App component:', error)
+    return (
+      <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+        <h1>Error en la aplicación</h1>
+        <p>{error.message}</p>
+        <pre>{error.stack}</pre>
+      </div>
+    )
+  }
 }
 
 export default App

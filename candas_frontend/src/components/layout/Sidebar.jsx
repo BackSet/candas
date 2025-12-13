@@ -4,6 +4,11 @@ import { useAuth } from '../../contexts/AuthContext'
 import ThemeToggle from '../theme/ThemeToggle'
 
 const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/e032b260-3761-424c-8962-a2f280305add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Sidebar.jsx:6',message:'Sidebar RENDER',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  }
+  // #endregion
   const location = useLocation()
   const { user } = useAuth()
   const [expandedSections, setExpandedSections] = useState({
@@ -20,6 +25,7 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
     'reports-queries': false,
     'reports-config': false,
     config: false,
+    tools: false,
   })
 
   // Cerrar menú móvil al cambiar de ruta
@@ -170,6 +176,15 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
       label: 'Configuración',
       items: [
         { path: '/catalogo/agencias-transporte', icon: 'fas fa-truck-moving', label: 'Agencias de Transporte' },
+      ]
+    },
+    {
+      id: 'tools',
+      type: 'section',
+      icon: 'fas fa-tools',
+      label: 'Herramientas',
+      items: [
+        { path: '/herramientas/mapeador-excel', icon: 'fas fa-file-excel', label: 'Mapeador de Excel' },
       ]
     },
   ]
